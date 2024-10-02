@@ -4,9 +4,7 @@
 
 #ifndef PACKET_H
 #define PACKET_H
-#include <iostream>
-#include <ostream>
-
+#include <memory>
 #ifdef __cplusplus
 extern "C"{
 #include <libavcodec/packet.h>
@@ -15,58 +13,58 @@ extern "C"{
 #include <libavcodec/packet.h>
 #endif
 
-struct Packet {
-  AVPacket *pkt = nullptr;
-  uint32_t serial;
+#include "util/ff_mem.h"
 
-  Packet() = default;
+struct Packet {
+  std::unique_ptr<AVPacket,AVPacketDeleter> pktPtr = nullptr;
+  uint32_t serial{};
+
   Packet(AVPacket *pkt, uint32_t serial);
 
-  Packet(const Packet&) = default;
-  Packet& operator=(const Packet&) = default;
-
-  // move constructor
+  // 禁止复制构造
+  Packet(const Packet&) = delete;
+  Packet& operator=(const Packet&) = delete;
+  // 移动构造
   Packet(Packet&& rhs) noexcept;
   Packet& operator=(Packet&& rhs) noexcept;
-
-  // ==
-  bool operator==(const Packet& rhs) const;
 
   void releaseAndReset(AVPacket *pkt, uint32_t serial);
   void release();
   // 注意这里不加析构，加了会导致PacketQueue不正常的行为
-  ~Packet() = default;
+  ~Packet();
 };
 
-inline Packet::Packet(AVPacket *pkt, uint32_t serial) : pkt(pkt), serial(serial) {}
+/*
+ * 建立对象后，原始的avpacket指针就再外部不要再使用了
+ */
+inline Packet::Packet(AVPacket *pkt, uint32_t serial) : pktPtr(pkt), serial(serial) {}
 
-inline Packet::Packet(Packet&& rhs) noexcept : pkt(rhs.pkt), serial(rhs.serial) {
-  rhs.pkt = nullptr;
+inline Packet::Packet(Packet&& rhs) noexcept:
+pktPtr(std::move(rhs.pktPtr)),
+serial(rhs.serial) {
+  rhs.pktPtr = nullptr;
 }
 
-inline Packet& Packet::operator=(Packet&& rhs) noexcept {
+inline Packet& Packet::operator= (Packet&& rhs) noexcept {
   if (this == &rhs) return *this;
-  if (pkt) av_packet_free(&pkt);
-  pkt = rhs.pkt;
+  pktPtr.reset(); // 释放自己的pkt, 如果管理的指针是空的，那么reset不会有任何效果
+  pktPtr = std::move(rhs.pktPtr); // 同时rhs的pktPtr会被置为nullptr
   serial = rhs.serial;
-  rhs.pkt = nullptr;
   return *this;
 }
 
-inline bool Packet::operator==(const Packet& rhs) const {
-  return pkt == rhs.pkt && serial == rhs.serial;
-}
 
 inline void Packet::releaseAndReset(AVPacket* pkt, uint32_t serial) {
-  if (this->pkt) {
-    av_packet_free(&this->pkt);
-  }
-  this->pkt = pkt;
+  pktPtr.reset(pkt);
   this->serial = serial;
 }
 
 inline void Packet::release() {
-  if (pkt) av_packet_free(&pkt);
+  pktPtr.reset();
+}
+
+inline Packet::~Packet() {
+  pktPtr.reset();
 }
 
 #endif //PACKET_H

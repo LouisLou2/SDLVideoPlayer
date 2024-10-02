@@ -50,6 +50,20 @@ add_executable(tool_try
     include/entity/frame.h
     src/struct/frame_queue.cpp
     include/struct/frame_queue.h
+    include/util/ff_mem.h
+    include/util/sdl_mem.h
+    src/test/test_move_queue.cpp
+    src/entity/subtitle_rect.cpp
+    include/entity/subtitle_rect.h
+    include/const/subtitle_type.h
+    src/entity/error_desc.cpp
+    include/entity/error_desc.h
+    include/const/error_type.h
+    src/const/error_type.cpp
+    include/const/log_level.h
+    include/util/logger/logger.h
+    include/util/logger/player_logger.h
+    src/util/logger/player_logger.cpp
 )
 
 pkg_check_modules(AVCODEC REQUIRED IMPORTED_TARGET libavcodec)

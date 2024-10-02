@@ -32,7 +32,7 @@ struct Frame {
   Frame &operator=(const Frame&) = delete;
   // move constructor
   Frame(Frame&& rhs) noexcept;
-  // Frame& operator=(Frame&& rhs) noexcept;
+  Frame& operator=(Frame&& rhs) noexcept;
   // release frame
   void release();
   // release and reset

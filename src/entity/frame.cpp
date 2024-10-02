@@ -21,23 +21,23 @@ Frame::Frame(
   fmt(fmt), sar(sar), uploaded(uploaded), flip(flip) {}
 
 
-// Frame& Frame::operator=(Frame&& rhs) noexcept {
-//   // if (this == &rhs) return *this; // 不做检查
-//   frame = rhs.frame;
-//   serial = rhs.serial;
-//   pts = rhs.pts;
-//   duration = rhs.duration;
-//   pos = rhs.pos;
-//   width = rhs.width;
-//   height = rhs.height;
-//   fmt = rhs.fmt;
-//   sar = rhs.sar;
-//   uploaded = rhs.uploaded;
-//   flip = rhs.flip;
-//
-//   rhs.frame = nullptr;
-//   return *this;
-// }
+Frame& Frame::operator=(Frame&& rhs) noexcept {
+  // if (this == &rhs) return *this; // 不做检查
+  frame = rhs.frame;
+  serial = rhs.serial;
+  pts = rhs.pts;
+  duration = rhs.duration;
+  pos = rhs.pos;
+  width = rhs.width;
+  height = rhs.height;
+  fmt = rhs.fmt;
+  sar = rhs.sar;
+  uploaded = rhs.uploaded;
+  flip = rhs.flip;
+
+  rhs.frame = nullptr;
+  return *this;
+}
 
 void Frame::releaseAndReset(const Frame& fr) {
   if (frame) av_frame_free(&frame);

@@ -35,13 +35,17 @@ public:
   [[nodiscard]] inline uint64_t getDuration() const;
   [[nodiscard]] inline uint32_t getSerial() const;
   [[nodiscard]] inline uint32_t getPktCount() const;
-
   [[nodiscard]] bool isEmpty() const;
 
   /*
    * BEWARE: 向其中推送同一内存地址的Frame，会导致内存重复释放
+   * push方法是阻塞的, push一个pkt, 不会影响原来的pkt，
+   * 但是请不要对外部的pkt再进行修改了，它的使用权已经交给了PacketQueue
    */
-  void push(AVPacket* pkt);
+  void push(Packet&& pac);
+  /*
+   * 一旦pop掉
+   */
   Packet blockPop();
   std::optional<Packet> tryPop();
 

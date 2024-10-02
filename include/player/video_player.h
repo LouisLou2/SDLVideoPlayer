@@ -13,18 +13,11 @@
 class VideoPlayer {
 protected:
   std::string_view video_path;
-  PacketQueue vPktq;
-  PacketQueue aPktq;
-  PacketQueue sPktq;
-
-  FrameQueue vFrameq;
-  FrameQueue aFrameq;
-  FrameQueue sFrameq;
 
 public:
   explicit VideoPlayer(std::string_view video_path);
   virtual void play() = 0;
-  ~VideoPlayer() = default;
+  virtual ~VideoPlayer() = default;
 };
 
 
