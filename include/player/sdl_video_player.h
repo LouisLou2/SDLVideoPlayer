@@ -4,10 +4,33 @@
 
 #ifndef VIDEOPLAYER_H
 #define VIDEOPLAYER_H
+#include <struct/packet_queue.h>
+#include "util/sdl_mem.h"
 #include "video_player.h"
+#include "entity/play_state.h"
+#include "entity/video_basic_info.h"
+#include "struct/frame_queue.h"
+#include "entity/player_setting.h"
+
+#ifdef __cplusplus
+extern "C" {
+#include <SDL2/SDL.h>
+}
+#else
+#include <SDL2/SDL.h>
+#endif
+
 
 class SDLVideoPlayer final : public VideoPlayer{
-private:
+  static constexpr std::string programName = "SDLVideoPlayer";
+
+  PlayerSettings settings;
+  VideoBasicInfo videoInfo;
+  PlayState playState;
+
+  std::unique_ptr<SDL_Window, SDL_WindowDeleter> window;
+  std::unique_ptr<SDL_Renderer, SDL_RendererDeleter> renderer;
+
   PacketQueue vPktq;
   PacketQueue aPktq;
   PacketQueue sPktq;
@@ -16,8 +39,13 @@ private:
   FrameQueue aFrameq;
   FrameQueue sFrameq;
 public:
-  explicit SDLVideoPlayer(std::string_view video_path);
+  explicit SDLVideoPlayer(
+    const std::string& video_path,
+    const std::optional<PlayerSettings>& setting = std::nullopt
+  );
   void play() override;
+  void initAv();
+  void initSDL();
 };
 
 

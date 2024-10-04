@@ -4,8 +4,6 @@
 
 #include "struct/frame_queue.h"
 
-FrameQueue::FrameQueue() = default;
-
 void FrameQueue::blockPush(Frame& fr) {
   std::unique_lock<std::mutex> lock(mtx);
   cv.wait(lock, [this] { return !isFull();});

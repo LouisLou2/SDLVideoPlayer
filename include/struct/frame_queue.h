@@ -21,23 +21,20 @@ extern "C"{
 
 // 这个队列基本上就是单生产者单消费者
 class FrameQueue {
-
   // 内部数据结构：ring buffer
   uint16_t capacity = PACKET_QUEUE_SIZE - 1; // 队列中留一个空位，用于区分队列满和队列空
-  uint16_t bufCap = PACKET_QUEUE_SIZE;
+  int16_t bufCap = PACKET_QUEUE_SIZE;
   std::array<Frame,PACKET_QUEUE_SIZE> buf;
-  uint16_t head = 0;
-  uint16_t tail = 0;
+  uint16_t head = 0; // head指向下一个可读位置
+  uint16_t tail = 0; // tail指向下一个可写位置
 
   // 读写同步
   std::mutex mtx;
   std::condition_variable cv;
 
 public:
-  FrameQueue();
+  explicit FrameQueue() = default;
   [[nodiscard]] inline uint16_t getCapacity() const;
-  [[nodiscard]] inline uint64_t getDuration() const;
-  [[nodiscard]] inline uint32_t getSerial() const;
   [[nodiscard]] inline uint32_t getPktCount() const;
   [[nodiscard]] bool isFull() const;
   [[nodiscard]] bool isEmpty() const;
@@ -58,7 +55,7 @@ inline uint16_t FrameQueue::getCapacity() const {
 }
 
 inline uint32_t FrameQueue::getPktCount() const {
-  return (tail +bufCap - head) % bufCap;
+  return (tail + bufCap - head) % bufCap;
 }
 
 inline bool FrameQueue::isFull() const {

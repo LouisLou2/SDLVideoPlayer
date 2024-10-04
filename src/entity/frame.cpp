@@ -6,6 +6,7 @@
 
 Frame::Frame(
   AVFrame* frame,
+  const Subtitle& subt,
   uint32_t serial,
   double pts,
   double duration,
@@ -16,7 +17,7 @@ Frame::Frame(
   AVRational sar,
   bool uploaded,
   bool flip
-  ): frame(frame), serial(serial), pts(pts),
+  ): frame(frame), subt(subt), serial(serial), pts(pts),
   duration(duration), pos(pos), width(width),height(height),
   fmt(fmt), sar(sar), uploaded(uploaded), flip(flip) {}
 
@@ -34,7 +35,7 @@ Frame& Frame::operator=(Frame&& rhs) noexcept {
   sar = rhs.sar;
   uploaded = rhs.uploaded;
   flip = rhs.flip;
-
+  subt = rhs.subt;
   rhs.frame = nullptr;
   return *this;
 }
@@ -52,4 +53,5 @@ void Frame::releaseAndReset(const Frame& fr) {
   sar = fr.sar;
   uploaded = fr.uploaded;
   flip = fr.flip;
+  subt = fr.subt;
 }

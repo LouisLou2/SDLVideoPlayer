@@ -11,17 +11,20 @@
 
 #include "log_level.h"
 
-#define EXCEPTNUM_DEF 5
+#define EXCEPTNUM_DEF 7
 
 // 必须是uint16_t类型, type又有多种分类，warn error critical
-enum class ExceptionType : uint16_t {
+enum class ExceptionType : uint16_t { // 更改这里记得更改ExceptionTypeUtil的typeNum！以及下边一系列的方法
   /*----critical----*/
   Unknown = 0,
   SystemError = 1,
   /*----error----*/
   UnsupportedFormat = 2,
   InvalidArgument = 3,
+
   ResourceNotFound = 4,
+  BrokenStream = 5,
+  SDLInitFailed = 6,
   /*----warn----*/
 };
 
@@ -35,6 +38,8 @@ struct ExceptionTypeUtil {
     "UnsupportedFormat", //2
     "InvalidArgument", //3
     "ResourceNotFound", //4
+    "BrokenStream", //5
+    "SDLInitFailed", //6
     /*----warn----*/
 };
   inline static std::string_view toStr(ExceptionType type);
@@ -51,7 +56,7 @@ inline std::string_view ExceptionTypeUtil::toStr(ExceptionType type) {
 inline LogLevel ExceptionTypeUtil::getLogLevel(ExceptionType type) {
   auto code = static_cast<uint16_t>(type);
   if (code < 2) return LogLevel::Critical;
-  if (code < 5) return LogLevel::Error;
+  if (code < 7) return LogLevel::Error;
   return LogLevel::Warn;
 }
 

@@ -64,6 +64,17 @@ add_executable(tool_try
     include/util/logger/logger.h
     include/util/logger/player_logger.h
     src/util/logger/player_logger.cpp
+    include/entity/subtitle.h
+    src/entity/video_basic_info.cpp
+    include/entity/video_basic_info.h
+    src/entity/play_state.cpp
+    include/entity/play_state.h
+    include/util/sync/clock.h
+    include/const/play_sync_type.h
+    include/util/url_util.h
+    include/const/stream_protocol.h
+    include/entity/player_setting.h
+    src/entity/play_setting.cpp
 )
 
 pkg_check_modules(AVCODEC REQUIRED IMPORTED_TARGET libavcodec)

@@ -22,7 +22,7 @@ inline void PlayerLogger::log(const ErrorDesc& detail) {
 
 inline void PlayerLogger::log(LogLevel level, const std::string& desc) {
   // 这里应该使用spdlog库来打印日志, 但是如果现在就将库引入, 会导致编译太慢，所以现在测试的时候先用标准输出吧
-  std::cout << "LogLevel: " << static_cast<int>(level) << ", ErrorDesc: " << desc << std::endl;
+  std::cout << "LogLevel: " << static_cast<int>(level) << ". ErrorDesc: " << desc << std::endl;
 }
 
 #endif //PLAYER_LOGGER_H

@@ -4,6 +4,7 @@
 
 #ifndef FRAME_H
 #define FRAME_H
+#include "subtitle.h"
 #ifdef __cplusplus
 extern "C"{
 #include <libavutil/frame.h>
@@ -14,6 +15,7 @@ extern "C"{
 
 struct Frame {
   AVFrame* frame = nullptr;
+  Subtitle subt{};
   uint32_t serial = 0;
   double pts = 0;
   double duration = 0;
@@ -26,7 +28,8 @@ struct Frame {
   bool flip = false;
 
   Frame() = default;
-  Frame(AVFrame* frame, uint32_t serial, double pts, double duration, uint64_t pos, uint32_t width, uint32_t height, int32_t fmt, AVRational sar, bool uploaded, bool flip);
+  //TODO： 这里subt的构造采用的使用Subtitle的默认拷贝构造，之后看看是不是可以修改更加合理，现在先不改了
+  Frame(AVFrame* frame, const Subtitle& subt, uint32_t serial, double pts, double duration, uint64_t pos, uint32_t width, uint32_t height, int32_t fmt, AVRational sar, bool uploaded, bool flip);
   // 删除复制构造
   Frame(const Frame&) = delete;
   Frame &operator=(const Frame&) = delete;
@@ -37,7 +40,6 @@ struct Frame {
   void release();
   // release and reset
   void releaseAndReset(const Frame& fr);
-  // releaseAndReset
   ~Frame() = default;
 };
 
@@ -46,7 +48,7 @@ inline Frame::Frame(Frame&& rhs) noexcept : frame(rhs.frame),
 serial(rhs.serial), pts(rhs.pts), duration(rhs.duration),
 pos(rhs.pos), width(rhs.width), height(rhs.height),
 fmt(rhs.fmt), sar(rhs.sar), uploaded(rhs.uploaded),
-flip(rhs.flip) {
+flip(rhs.flip), subt(rhs.subt) {
   rhs.frame = nullptr;
 }
 

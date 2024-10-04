@@ -20,7 +20,6 @@ struct Packet {
   uint32_t serial{};
 
   Packet(AVPacket *pkt, uint32_t serial);
-
   // 禁止复制构造
   Packet(const Packet&) = delete;
   Packet& operator=(const Packet&) = delete;

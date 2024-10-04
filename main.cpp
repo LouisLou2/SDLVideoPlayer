@@ -1,4 +1,7 @@
 #include <chrono>
+#include <cstring>
+#include <player/sdl_video_player.h>
+#include <player/video_player.h>
 
 #include "entity/error_desc.h"
 #include "util/logger/player_logger.h"
@@ -40,12 +43,15 @@ void testio() {
   }
 }
 
+
 int main() {
   try {
     std::cout << "Throwing exception now..." << std::endl;
-    throw ErrorDesc::from(ExceptionType::UnsupportedFormat, "Unknown error");
+    throw ErrorDesc::from(ExceptionType::UnsupportedFormat, std::string("Unknown error"));
   } catch (std::exception& e) {
     PlayerLogger::log(LogLevel::Critical,e.what());
   }
+  VideoPlayer&& player = SDLVideoPlayer("/home/leo/Media/medias/bejeweled_20-23.mp4",std::nullopt);
+  player.play();
   return 0;
 }

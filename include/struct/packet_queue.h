@@ -21,11 +21,9 @@ extern "C"{
 class PacketQueue {
 
   std::list<Packet> buf;
-
   // 读写同步
   std::mutex mtx;
   std::condition_variable cv;
-
   // 应用层数据
   uint64_t duration = 0; // unit: time_base
   uint32_t serial = 0;
@@ -36,7 +34,6 @@ public:
   [[nodiscard]] inline uint32_t getSerial() const;
   [[nodiscard]] inline uint32_t getPktCount() const;
   [[nodiscard]] bool isEmpty() const;
-
   /*
    * BEWARE: 向其中推送同一内存地址的Frame，会导致内存重复释放
    * push方法是阻塞的, push一个pkt, 不会影响原来的pkt，
@@ -48,7 +45,6 @@ public:
    */
   Packet blockPop();
   std::optional<Packet> tryPop();
-
   ~PacketQueue(); // Packet的析构函数会释放pkt
 };
 
