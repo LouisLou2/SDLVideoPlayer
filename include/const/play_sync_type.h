@@ -7,9 +7,9 @@
 #include <cstdint>
 
 enum class PlaySyncType: uint8_t {
-  Audio = 0,
-  Video = 1,
-  External = 2,
+  AudioMaster = 0,
+  VideoMaster = 1,
+  ExternalMaster = 2,
 };
 
 #endif //PLAY_SYNC_TYPE_H

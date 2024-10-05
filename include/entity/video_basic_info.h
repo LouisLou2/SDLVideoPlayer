@@ -7,6 +7,7 @@
 #include <string>
 
 #include "const/stream_protocol.h"
+
 #ifdef __cplusplus
 extern "C" {
 #include <libavformat/avformat.h>
@@ -16,9 +17,11 @@ extern "C" {
 #endif
 
 struct VideoBasicInfo {
+  friend class SDLVideoPlayer;
+private:
   StreamProtocol protocol;
   std::string filename;
-  AVInputFormat *iformat; // 输入格式
+  const AVInputFormat *iformat; // 输入格式
 };
 
 

@@ -31,11 +31,11 @@ struct SDL_TextureDeleter {
   }
 };
 
-struct SDL_ThreadDeleter {
-  void operator()(SDL_Thread* thread) const {
-    int status;
-    SDL_WaitThread(thread, &status);
-    printf("SDL_ThreadDeleter: status=%d\n", status);
-  }
-};
+// struct SDL_ThreadDeleter {
+//   void operator()(SDL_Thread* thread) const {
+//     int status;
+//     SDL_WaitThread(thread, &status);
+//     printf("SDL_ThreadDeleter: status=%d\n", status);
+//   }
+// };
 #endif //SDL_MEM_H

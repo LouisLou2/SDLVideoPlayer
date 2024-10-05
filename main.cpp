@@ -45,12 +45,12 @@ void testio() {
 
 
 int main() {
-  try {
-    std::cout << "Throwing exception now..." << std::endl;
-    throw ErrorDesc::from(ExceptionType::UnsupportedFormat, std::string("Unknown error"));
-  } catch (std::exception& e) {
-    PlayerLogger::log(LogLevel::Critical,e.what());
-  }
+  // try {
+  //   std::cout << "Throwing exception now..." << std::endl;
+  //   throw ErrorDesc::from(ExceptionType::UnsupportedFormat, std::string("Unknown error"));
+  // } catch (std::exception& e) {
+  //   PlayerLogger::log(LogLevel::Critical,e.what());
+  // }
   VideoPlayer&& player = SDLVideoPlayer("/home/leo/Media/medias/bejeweled_20-23.mp4",std::nullopt);
   player.play();
   return 0;

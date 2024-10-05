@@ -29,7 +29,7 @@ public:
   [[nodiscard]] inline static ErrorDesc from(ExceptionType ty, auto&& desc);
 };
 
-inline ErrorDesc::ErrorDesc(LogLevel level, ExceptionType type, std::string_view typeStr, auto&& desc) :
+ErrorDesc::ErrorDesc(LogLevel level, ExceptionType type, std::string_view typeStr, auto&& desc) :
   level(level),
   type(type),
   typeStr(typeStr),

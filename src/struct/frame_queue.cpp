@@ -4,6 +4,16 @@
 
 #include "struct/frame_queue.h"
 
+void FrameQueue::reset(size_t capacity, bool keepLast) {
+  assert(isEmpty());
+  // 检查capacity是否合法
+  assert(capacity <= CapMax);
+  // 重置
+  this->capacity = static_cast<uint16_t>(capacity);
+  bufCap = this->capacity + 1;
+  this->keepLast = keepLast;
+}
+
 void FrameQueue::blockPush(Frame& fr) {
   std::unique_lock<std::mutex> lock(mtx);
   cv.wait(lock, [this] { return !isFull();});
@@ -25,6 +35,13 @@ bool FrameQueue::tryPush(Frame& fr) {
 Frame FrameQueue::blockPop() {
   std::unique_lock<std::mutex> lock(mtx);
   cv.wait(lock, [this] { return !isEmpty();});
+  // 如果是keepLast，那么需要复制一份
+  if (keepLast) {
+    lastFrame = buf[head];
+    /*此处特别注意的是，pop出去的一个Frame，这里还会保存一个Frame，
+     *他们的内部指针指向的是同一块内存，所以使用keepLast机制需要格外注意！！
+     */
+  }
   Frame pkt = std::move(buf[head]);
   head = (head + 1) % bufCap;
   cv.notify_all(); // 为什么通知？因为有可能有线程在等待push
@@ -35,10 +52,23 @@ std::optional<Frame> FrameQueue::tryPop() {
   if (isEmpty()) return std::nullopt;
   std::unique_lock<std::mutex> lock(mtx);
   if (isEmpty()) return std::nullopt; // 为什么要再次检查？因为可能在等待锁的时候，队列已经空了
+  // 如果是keepLast，那么需要复制一份
+  if (keepLast) {
+    lastFrame = buf[head];
+    /*此处特别注意的是，pop出去的一个Frame，这里还会保存一个Frame，
+     *他们的内部指针指向的是同一块内存，所以使用keepLast机制需要格外注意！！
+     */
+  }
   Frame pkt = std::move(buf[head]);
   head = (head + 1) % bufCap;
   cv.notify_all(); // 为什么通知？因为有可能有线程在等待push
   return pkt;
+}
+
+Frame FrameQueue::getLastFrame() {
+  // 需要拿到锁，防止pop的时候修改lastFrame
+  std::unique_lock<std::mutex> lock(mtx);
+  return lastFrame;
 }
 
 FrameQueue::~FrameQueue() {

@@ -30,9 +30,9 @@ struct Frame {
   Frame() = default;
   //TODO： 这里subt的构造采用的使用Subtitle的默认拷贝构造，之后看看是不是可以修改更加合理，现在先不改了
   Frame(AVFrame* frame, const Subtitle& subt, uint32_t serial, double pts, double duration, uint64_t pos, uint32_t width, uint32_t height, int32_t fmt, AVRational sar, bool uploaded, bool flip);
-  // 删除复制构造
-  Frame(const Frame&) = delete;
-  Frame &operator=(const Frame&) = delete;
+  // 使用复制构造函数一定要慎重再慎重
+  Frame(const Frame&) = default;
+  Frame &operator=(const Frame&) = default;
   // move constructor
   Frame(Frame&& rhs) noexcept;
   Frame& operator=(Frame&& rhs) noexcept;

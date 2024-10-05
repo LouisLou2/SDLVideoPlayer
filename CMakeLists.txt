@@ -75,6 +75,7 @@ add_executable(tool_try
     include/const/stream_protocol.h
     include/entity/player_setting.h
     src/entity/play_setting.cpp
+    include/const/input_format_enum.h
 )
 
 pkg_check_modules(AVCODEC REQUIRED IMPORTED_TARGET libavcodec)

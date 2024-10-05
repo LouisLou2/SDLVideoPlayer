@@ -10,10 +10,15 @@
 #include "util/sync/clock.h"
 
 struct PlayState {
+  friend class SDLVideoPlayer;
+private:
   // 以下三个index是播放的流的index，-1表示没有播放
-  int16_t lastVidStreamInd;
-  int16_t lastAudStreamInd;
-  int16_t lastSubStreamInd;
+  int16_t lastVidStInd;
+  int16_t lastAudStInd;
+  int16_t lastSubStInd;
+  uint16_t vidStInd;
+  uint16_t audStInd;
+  uint16_t subStInd;
 
   uint32_t width;
   uint32_t height;
@@ -26,12 +31,11 @@ struct PlayState {
 
   bool mute;
   bool paused;
-
-  PlaySyncType syncType;
-
-  int audioClockSerial;
   uint16_t volume;
 
+  PlaySyncType syncType;
+  int audioClockSerial;
+public:
   PlayState();
 };
 
