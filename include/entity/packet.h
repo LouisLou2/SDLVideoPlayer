@@ -13,11 +13,11 @@ extern "C"{
 #include <libavcodec/packet.h>
 #endif
 
-#include "util/ff_mem.h"
+#include "util/mem/ff_mem.h"
 
 struct Packet {
   std::unique_ptr<AVPacket,AVPacketDeleter> pktPtr = nullptr;
-  uint32_t serial{};
+  uint32_t serial;
 
   Packet(AVPacket *pkt, uint32_t serial);
   // 禁止复制构造

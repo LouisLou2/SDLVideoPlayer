@@ -45,37 +45,9 @@ add_executable(tool_try
 #    include/entity/packet.h
 #    src/test/test_lib_queue.cpp
     ${ALL_SOURCE_FILES}
-    src/test/test_ring_queue.cpp
-    src/entity/frame.cpp
-    include/entity/frame.h
-    src/struct/frame_queue.cpp
-    include/struct/frame_queue.h
-    include/util/ff_mem.h
-    include/util/sdl_mem.h
-    src/test/test_move_queue.cpp
-    src/entity/subtitle_rect.cpp
-    include/entity/subtitle_rect.h
-    include/const/subtitle_type.h
-    src/entity/error_desc.cpp
-    include/entity/error_desc.h
-    include/const/error_type.h
-    src/const/error_type.cpp
-    include/const/log_level.h
-    include/util/logger/logger.h
-    include/util/logger/player_logger.h
-    src/util/logger/player_logger.cpp
-    include/entity/subtitle.h
-    src/entity/video_basic_info.cpp
-    include/entity/video_basic_info.h
-    src/entity/play_state.cpp
-    include/entity/play_state.h
-    include/util/sync/clock.h
-    include/const/play_sync_type.h
-    include/util/url_util.h
-    include/const/stream_protocol.h
-    include/entity/player_setting.h
-    src/entity/play_setting.cpp
-    include/const/input_format_enum.h
+    include/const/seek_type.h
+    include/util/ff_util.h
+    src/util/ff_util.cpp
 )
 
 pkg_check_modules(AVCODEC REQUIRED IMPORTED_TARGET libavcodec)

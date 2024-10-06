@@ -20,6 +20,12 @@ include <libavformat/avformat.h>
 #include <libswresample/swresample.h>
 #endif
 
+struct AVDictionaryDeleter {
+  void operator()(AVDictionary* dict) const {
+    av_dict_free(&dict);
+  }
+};
+
 // deleter for AVFormatContext
 struct AVFormatContextDeleter {
   void operator()(AVFormatContext* fmtCtx) const {

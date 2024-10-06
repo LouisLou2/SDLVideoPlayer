@@ -3,6 +3,13 @@
 //
 
 #include "entity/play_state.h"
+#ifdef __cplusplus
+extern "C" {
+#include <SDL_audio.h>
+}
+#else
+#include <SDL_audio.h>
+#endif
 
 PlayState::PlayState():
   lastVidStInd(-1),
@@ -17,12 +24,13 @@ PlayState::PlayState():
   x(0),
   y(0),
   // 窗口的位置和大小，都预设为0
-  audClk(),
-  vidClk(),
-  extClk(),
   mute(false),
   paused(false),
-  volume(100),
+  volume(SDL_MIX_MAXVOLUME / 2),
   syncType(PlaySyncType::AudioMaster),
-  audioClockSerial(0){
+  audioClockSerial(-1),
+  eof(false), // 默认没有到达文件尾
+  abortReq(false), // 默认没有退出请求
+  maxFrameDuration(0),// 0是非法的，这个也必须后来改动
+  playOffset(0){
 }

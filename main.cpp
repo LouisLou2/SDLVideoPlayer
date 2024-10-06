@@ -1,5 +1,4 @@
 #include <chrono>
-#include <cstring>
 #include <player/sdl_video_player.h>
 #include <player/video_player.h>
 

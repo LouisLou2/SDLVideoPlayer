@@ -6,8 +6,9 @@
 #define VIDEOPLAYER_H
 
 #include <fstream>
+#include <entity/thread_coordinator.h>
 #include <struct/packet_queue.h>
-#include "util/sdl_mem.h"
+#include "util/mem/sdl_mem.h"
 #include "video_player.h"
 #include "entity/play_state.h"
 #include "entity/video_basic_info.h"
@@ -30,6 +31,7 @@ class SDLVideoPlayer final : public VideoPlayer{
   PlayerSettings settings;
   VideoBasicInfo videoInfo;
   PlayState playState;
+  ThreadCoordinator coordinator;
 
   std::unique_ptr<SDL_Window, SDL_WindowDeleter> window;
   std::unique_ptr<SDL_Renderer, SDL_RendererDeleter> renderer;
@@ -44,10 +46,11 @@ class SDLVideoPlayer final : public VideoPlayer{
   FrameQueue aFrameq;
   FrameQueue sFrameq;
 
-  void setInputFormat();
   void openStream();
   void initAv();
   void initSDL();
+  void read();
+
 public:
   explicit SDLVideoPlayer(
     const std::string& video_path,
@@ -55,7 +58,5 @@ public:
   );
   void play() override;
 };
-
-
 
 #endif //VIDEOPLAYER_H

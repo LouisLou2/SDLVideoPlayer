@@ -31,14 +31,25 @@ private:
 
   bool mute;
   bool paused;
-  uint16_t volume;
+  uint8_t volume; // 音量, 0-128, 因为SDL的音量范围是0-128
 
   PlaySyncType syncType;
   int audioClockSerial;
+
+  bool eof; // 是否到达文件尾
+  bool abortReq;
+
+  uint16_t maxFrameDuration; // 最大帧间隔，单位ms
+
+  uint64_t playOffset; // 偏移指定时间开始播放, 单位是AV_TIME_BASE_Q
 public:
   PlayState();
+  static int getAborted(void* state);
 };
 
+inline int PlayState::getAborted(void* state) {
+  return static_cast<PlayState*>(state)->abortReq;
+}
 
 
 #endif //PLAY_STATE_H

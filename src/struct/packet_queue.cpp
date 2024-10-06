@@ -4,12 +4,10 @@
 
 #include "struct/packet_queue.h"
 
-PacketQueue::PacketQueue() = default;
-
 void PacketQueue::push(Packet&& pac) {
   std::unique_lock<std::mutex> lock(mtx);
   duration += pac.pktPtr->duration;
-  buf.emplace_back(std::forward<Packet>(pac)); // 完美转发
+  buf.emplace_back(std::move(pac));
   cv.notify_all(); // 为什么通知？因为有可能有线程在等待pop
 }
 
