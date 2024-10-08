@@ -204,6 +204,7 @@ void SDLVideoPlayer::determineStream() {
       }
     }
   }
+  int x =0;
 }
 
 
