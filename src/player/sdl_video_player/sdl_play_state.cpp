@@ -2,7 +2,7 @@
 // Created by leo on 24-10-4.
 //
 
-#include "entity/play_state.h"
+#include "player/sdl_video_player/sdl_play_state.h"
 #ifdef __cplusplus
 extern "C" {
 #include <SDL_audio.h>
@@ -11,7 +11,7 @@ extern "C" {
 #include <SDL_audio.h>
 #endif
 
-PlayState::PlayState():
+SDLPlayState::SDLPlayState():
   lastVidStInd(-1),
   lastAudStInd(-1),
   lastSubStInd(-1),

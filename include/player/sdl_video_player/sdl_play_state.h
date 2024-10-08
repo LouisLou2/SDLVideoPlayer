@@ -9,7 +9,7 @@
 #include "const/play_sync_type.h"
 #include "util/sync/clock.h"
 
-struct PlayState {
+struct SDLPlayState {
   friend class SDLVideoPlayer;
 private:
   // 以下三个index是播放的流的index，-1表示没有播放
@@ -43,12 +43,12 @@ private:
 
   uint64_t playOffset; // 偏移指定时间开始播放, 单位是AV_TIME_BASE_Q
 public:
-  PlayState();
+  SDLPlayState();
   static int getAborted(void* state);
 };
 
-inline int PlayState::getAborted(void* state) {
-  return static_cast<PlayState*>(state)->abortReq;
+inline int SDLPlayState::getAborted(void* state) {
+  return static_cast<SDLPlayState*>(state)->abortReq;
 }
 
 

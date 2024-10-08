@@ -6,7 +6,7 @@
 #define THREAD_COORDINATOR_H
 #include <condition_variable>
 
-struct ThreadCoordinator {
+struct SDLThreadCoordinator {
   friend class SDLVideoPlayer;
 private:
   std::condition_variable continueReadCV;

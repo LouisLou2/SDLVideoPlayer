@@ -2,14 +2,27 @@
 // Created by leo on 24-10-4.
 //
 
-#ifndef PLAYER_SETTING_H
-#define PLAYER_SETTING_H
+#ifndef SDL_VIDEO_PLAYER_SETTING_H
+#define SDL_VIDEO_PLAYER_SETTING_H
 
 #include <cstdint>
 #include <optional>
 #include <string>
-#include <util/logger/player_logger.h>
+#include <vector>
+#ifdef __cplusplus
+extern "C"{
+#include <libavutil/dict.h>
+#include <libavformat/avformat.h>
+#include <libavutil/avutil.h>
+}
+#else
+#include <libavutil/dict.h>
+#include <libavformat/avformat.h>
+#include <libavutil/avutil.h>
+#endif
 
+#include "util/logger/player_logger.h"
+#include "player/player_setting.h"
 #include "const/input_format_enum.h"
 #include "const/seek_type.h"
 
@@ -19,7 +32,7 @@
 #define MAX_VOLUME 100
 #define MIN_VOLUME 0
 
-struct PlayerSettings {
+struct SDLVidPlayerSettings : PlayerSetting{
   friend class SDLVideoPlayer;
 private:
   std::string windowTitle;
@@ -44,8 +57,11 @@ private:
   SeekType seekType;
 
   uint32_t playOffsetSec;
+
+  // 5个，分别是视频，音频，字幕，数据，附加数据的流规格筛选规则
+  std::array<const char*, AVMediaType::AVMEDIA_TYPE_NB> wantedStreamSpec;
 public:
-  PlayerSettings(
+  explicit SDLVidPlayerSettings(
     auto&& title = "Unnamed Player",
     bool enableNetwork = true,
     bool disableAud = false,
@@ -61,21 +77,26 @@ public:
     bool findStreamInfo = true,
     bool showStatus = false, // 默认不显示流信息
     std::optional<SeekType> seekType = std::nullopt,
-    uint32_t playOffsetSec = 0
+    uint32_t playOffsetSec = 0,
+    std::array<const char*, AVMediaType::AVMEDIA_TYPE_NB> wantedStreamSpec = {
+      nullptr, nullptr, nullptr, nullptr, nullptr
+    }
   );
-  // 拷贝构造函数
-  PlayerSettings(const PlayerSettings& setting) = default;
+  // 拷贝构造函数, 目前是用不到的
+  SDLVidPlayerSettings(const SDLVidPlayerSettings& setting) = default;
   // 移动构造函数
   /*
    * 为什么这里要声明移动构造函数？
    * 当传递一个右值引用的时候，我们的PlayerSettings构造函数第一个形参是universal reference, 并且剩下的形参都是有默认值的，
-   * 所以这个构造函数可以接受右值引用，可能会调用成构造函数，这不是预期的
+   * 所以这个构造函数可以接受右值引用，可能会调用成构造函数，这不是预期的，可以将
    */
-  PlayerSettings(PlayerSettings&& setting) = default;
+  SDLVidPlayerSettings(SDLVidPlayerSettings&& setting) = default;
+
+  [[nodiscard]] AVDictionary* getFormatOpt() const;
+  [[nodiscard]] std::vector<AVDictionary*> getCodecOpts(const AVFormatContext* fmtCtx);
 };
 
-
-PlayerSettings::PlayerSettings(
+SDLVidPlayerSettings::SDLVidPlayerSettings(
   auto&& title,
   bool enableNetwork,
   bool disableAud,
@@ -91,7 +112,8 @@ PlayerSettings::PlayerSettings(
   bool findStreamInfo,
   bool showStatus,
   std::optional<SeekType> seekType,
-  uint32_t playOffsetSec
+  uint32_t playOffsetSec,
+  std::array<const char*, AVMediaType::AVMEDIA_TYPE_NB> wantedStreamSpec
 ) :
   windowTitle(std::forward<decltype(title)>(title)),
   enableNetwork(enableNetwork),
@@ -107,7 +129,8 @@ PlayerSettings::PlayerSettings(
   findStreamInfo(findStreamInfo),
   showStatus(showStatus),
   specifiedSeekType(seekType.has_value()),
-  playOffsetSec(playOffsetSec)
+  playOffsetSec(playOffsetSec),
+  wantedStreamSpec(wantedStreamSpec)
 {
   if (specifiedInputFormat) this->inputFormat = inputFormat.value(); // 如果没有输入格式，
   if (specifiedSeekType) this->seekType = seekType.value();
@@ -122,4 +145,4 @@ PlayerSettings::PlayerSettings(
   }
 }
 
-#endif //PLAYER_SETTING_H
+#endif //SDL_VIDEO_PLAYER_SETTING_H
