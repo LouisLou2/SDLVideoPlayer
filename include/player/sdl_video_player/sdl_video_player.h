@@ -6,14 +6,14 @@
 #define VIDEOPLAYER_H
 
 #include <fstream>
-#include <entity/thread_coordinator.h>
-#include <struct/packet_queue.h>
+#include "player/sdl_video_player/sdl_thread_coordinator.h"
+#include "struct/packet_queue.h"
 #include "util/mem/sdl_mem.h"
-#include "video_player.h"
-#include "entity/play_state.h"
-#include "entity/video_basic_info.h"
+#include "player/video_player.h"
+#include "player/sdl_video_player/sdl_play_state.h"
+#include "player/sdl_video_player/sdl_video_basic_info.h"
 #include "struct/frame_queue.h"
-#include "entity/player_setting.h"
+#include "player/sdl_video_player/sdl_vid_player_setting.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,10 +28,10 @@ class SDLVideoPlayer final : public VideoPlayer{
 
   static constexpr std::string programName = "SDLVideoPlayer";
 
-  PlayerSettings settings;
+  SDLVidPlayerSettings settings;
   VideoBasicInfo videoInfo;
-  PlayState playState;
-  ThreadCoordinator coordinator;
+  SDLPlayState playState;
+  SDLThreadCoordinator coordinator;
 
   std::unique_ptr<SDL_Window, SDL_WindowDeleter> window;
   std::unique_ptr<SDL_Renderer, SDL_RendererDeleter> renderer;
@@ -50,11 +50,12 @@ class SDLVideoPlayer final : public VideoPlayer{
   void initAv();
   void initSDL();
   void read();
+  void determineStream();
 
 public:
   explicit SDLVideoPlayer(
     const std::string& video_path,
-    const std::optional<PlayerSettings>& setting = std::nullopt
+    const std::optional<SDLVidPlayerSettings>& setting = std::nullopt
   );
   void play() override;
 };

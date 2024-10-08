@@ -5,10 +5,7 @@
 #include <functional>
 #include <optional>
 #include <vector>
-
-
-#include "player/sdl_video_player.h"
-
+#include <limits>
 #include <bits/ranges_algo.h>
 
 #include "entity/error_desc.h"
@@ -16,6 +13,7 @@
 #include "util/calc.h"
 #include "util/ff_util.h"
 #include "util/logger/player_logger.h"
+#include "player/sdl_video_player/sdl_video_player.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,11 +34,11 @@ namespace fs = std::filesystem;
 
 SDLVideoPlayer::SDLVideoPlayer(
   const std::string& video_path,
-  const std::optional<PlayerSettings>& setting
+  const std::optional<SDLVidPlayerSettings>& setting
 ):
 settings(
   setting.value_or(
-    PlayerSettings(
+    SDLVidPlayerSettings(
       SDLVideoPlayer::programName + " " + video_path,
       true,
       false,
@@ -134,11 +132,11 @@ void SDLVideoPlayer::read() {
   AVFormatContext* fmtCtx = avformat_alloc_context();
   if (!fmtCtx) throw ErrorDesc::from(ExceptionType::MemoryAllocFailed, "Can't allocate AVFormatContext");
   // 下面的两个语句简直恶心，但是为了配合ffmpeg的设计，不得不这样写
-  fmtCtx->interrupt_callback.callback = &PlayState::getAborted;
+  fmtCtx->interrupt_callback.callback = &SDLPlayState::getAborted;
   fmtCtx->interrupt_callback.opaque = &playState;
-
   // 得到videoInfo.fmtCtx
-  AVDictionary* fmtOpts = FFUtil::parseFormatOpt(settings);
+
+  AVDictionary* fmtOpts = settings.getFormatOpt();
   if (!av_dict_get(fmtOpts, "scan_all_pmts", nullptr, AV_DICT_MATCH_CASE)) {
     av_dict_set(&fmtOpts, "scan_all_pmts", "1", 0);
   }
@@ -152,7 +150,7 @@ void SDLVideoPlayer::read() {
 
   if (settings.findStreamInfo) {
     // 将每个流需要的dict option都设置好
-    std::vector<AVDictionary*> optlist = FFUtil::parseCodecOpt(fmtCtx, settings);
+    std::vector<AVDictionary*> optlist = settings.getCodecOpts(fmtCtx);
     AVDictionary** optlistPtr = optlist.data();
     ret = avformat_find_stream_info(fmtCtx, optlistPtr);
     // 使用完了，释放：foreach语句
@@ -185,6 +183,26 @@ void SDLVideoPlayer::read() {
 
   if (settings.showStatus) {
     av_dump_format(fmtCtx, 0, videoInfo.originalUrl.c_str(), 0);
+  }
+
+
+
+
+  av_packet_free(&pkt);
+}
+
+void SDLVideoPlayer::determineStream() {
+  // 差不多nb_streams应该不会太大，所以就用uint16_t了
+  assert(videoInfo.fmtCtx->nb_streams <= std::numeric_limits<uint16_t>::max());
+  for (uint16_t i =0; i < videoInfo.fmtCtx->nb_streams;++i) {
+    AVStream* st = videoInfo.fmtCtx->streams[i];
+    AVMediaType ty = st->codecpar->codec_type;
+    st->discard = AVDISCARD_ALL;
+    if (ty > AVMediaType::AVMEDIA_TYPE_UNKNOWN && settings.wantedStreamSpec[ty]&& videoInfo.streamIndex[ty]) {
+      if (avformat_match_stream_specifier(videoInfo.fmtCtx.get(), st, settings.wantedStreamSpec[ty]) > 0) {
+        videoInfo.streamIndex[ty] = i;
+      }
+    }
   }
 }
 

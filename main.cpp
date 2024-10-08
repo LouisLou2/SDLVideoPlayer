@@ -1,6 +1,8 @@
 #include <chrono>
-#include <player/sdl_video_player.h>
-#include <player/video_player.h>
+#include <player/player_setting_fac.h>
+
+#include "player/sdl_video_player/sdl_video_player.h"
+#include "player/video_player.h"
 
 #include "entity/error_desc.h"
 #include "util/logger/player_logger.h"
@@ -50,6 +52,10 @@ int main() {
   // } catch (std::exception& e) {
   //   PlayerLogger::log(LogLevel::Critical,e.what());
   // }
+  // PlayerSetting* setting = PlayerSettingFac::createPlayerSetting(PlayerTypeEnum::SDLPlayer, "test", true, false, false, false, false, 1920, 1080);
+  std::unique_ptr setting = std::unique_ptr<PlayerSetting>(
+    PlayerSettingFac::createPlayerSetting(PlayerTypeEnum::SDLPlayer, "test", true, false, false, false, false, 1920, 1080)
+  );
   VideoPlayer&& player = SDLVideoPlayer("/home/leo/Media/medias/bejeweled_20-23.mp4",std::nullopt);
   player.play();
   return 0;

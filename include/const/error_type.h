@@ -8,55 +8,54 @@
 #include <cassert>
 #include <cstdint>
 #include <string_view>
-
 #include "log_level.h"
-
-#define EXCEPTNUM_DEF 14
 
 // 必须是uint16_t类型, type又有多种分类，warn error critical
 enum class ExceptionType : uint16_t { // 更改这里记得更改ExceptionTypeUtil的typeNum！以及下边一系列的方法
   /*----critical----*/
   Unknown = 0,
-  SystemError = 1,
-  NoneComplaint = 2,
-  MemoryAllocFailed = 3,
+  SystemError,
+  NoneComplaint,
+  MemoryAllocFailed,
+  Unimplemented,
   /*----error----*/
-  UnsupportedFormat = 4,
-  InvalidArgument = 5,
+  UnsupportedFormat,
+  InvalidArgument,
 
-  ResourceNotFound = 6,
-  FileUnreadable = 7,
-  BrokenStream = 8,
-  SDLInitFailed = 9,
-  SDLComponentInitFailed = 10,
+  ResourceNotFound,
+  FileUnreadable,
+  BrokenStream,
+  SDLInitFailed,
+  SDLComponentInitFailed,
   /*----warn----*/
-  SDLHardwareAccelerationFailed = 11,
-  AutoAdjust = 12,
-  PlaySeekFailed = 13
+  SDLHardwareAccelerationFailed,
+  AutoAdjust,
+  PlaySeekFailed,
 };
 
 struct ExceptionTypeUtil {
-  static constexpr uint16_t typeNum = EXCEPTNUM_DEF;
-  static constexpr uint16_t criticalMax = 3;
-  static constexpr uint16_t errorMax = 10;
+  static constexpr uint16_t typeNum = static_cast<uint16_t>(ExceptionType::PlaySeekFailed) + 1;
+  static constexpr uint16_t criticalMax = static_cast<uint16_t>(ExceptionType::Unimplemented);
+  static constexpr uint16_t errorMax = static_cast<uint16_t>(ExceptionType::SDLComponentInitFailed);
   static constexpr std::array<std::string_view, typeNum> typeStr = {
     /*----critical----*/
     "Unknown", // 0
-    "System Error", // 1
-    "None Complaint", // 2
-    "Memory Alloc Failed", // 3
+    "System Error",
+    "None Complaint",
+    "Memory Alloc Failed",
+    "Unimplemented",
     /*----error----*/
-    "Unsupported Format", //4
-    "Invalid Argument", //5
-    "Resource Not Found", //6
-    "File Unreadable", //7
-    "Broken Stream", //8
-    "SDL Init Failed", //9
-    "SDL Component Init Failed", //10
+    "Unsupported Format",
+    "Invalid Argument",
+    "Resource Not Found",
+    "File Unreadable",
+    "Broken Stream",
+    "SDL Init Failed",
+    "SDL Component Init Failed",
     /*----warn----*/
-    "SDL Hardware Acceleration Failed", //11
-    "Auto Adjust" //12
-    "Play Seek Failed" //13
+    "SDL Hardware Acceleration Failed",
+    "Auto Adjust",
+    "Play Seek Failed"
 };
   inline static std::string_view toStr(ExceptionType type);
   inline static LogLevel getLogLevel(ExceptionType type);

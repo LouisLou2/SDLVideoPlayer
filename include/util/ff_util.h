@@ -5,7 +5,7 @@
 #ifndef FF_OPT_UTIL_H
 #define FF_OPT_UTIL_H
 #include <vector>
-#include <entity/player_setting.h>
+#include "player/sdl_video_player/sdl_vid_player_setting.h"
 #ifdef __cplusplus
 extern "C" {
 #include <libavutil/dict.h>
@@ -28,8 +28,6 @@ public:
   static inline bool hasDiscontinuousTS(const AVInputFormat* iformat);
   static inline const AVInputFormat* getInputFormat(InputFormatEnum ifmtEnum);
   static inline SeekType decideSeekType(const AVInputFormat* iformat);
-  static AVDictionary* parseFormatOpt(const PlayerSettings& settings);
-  static std::vector<AVDictionary*> parseCodecOpt(const AVFormatContext* fmtCtx, const PlayerSettings& settings);
 };
 
 inline bool FFUtil::hasDiscontinuousTS(const AVInputFormat* iformat) {
