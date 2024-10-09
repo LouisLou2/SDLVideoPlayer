@@ -9,6 +9,8 @@
 #include <optional>
 #include <string>
 #include <vector>
+
+#include "const/show_mode_enum.h"
 #ifdef __cplusplus
 extern "C"{
 #include <libavutil/dict.h>
@@ -32,13 +34,17 @@ extern "C"{
 #define MAX_VOLUME 100
 #define MIN_VOLUME 0
 
-struct SDLVidPlayerSettings : PlayerSetting{
+class SDLVidPlayerSettings : public PlayerSetting{
   friend class SDLVideoPlayer;
-private:
+
   std::string windowTitle;
   bool enableNetwork;
   bool disableAud;
   bool disableVid;
+  bool disableSub;
+  ShowModeEnum showMode;
+
+  uint16_t useDisplayIndex;
   bool alwaysOnTop;
   bool borderless;
   uint32_t windowWidth;
@@ -58,6 +64,12 @@ private:
 
   uint32_t playOffsetSec;
 
+  std::string videoDecoderName;
+  std::string audioDecoderName;
+  std::string subDecoderName;
+  // 允许在decoder找不到指定的流时，使用默认的流
+  bool forceSpecifiedDecoder;
+
   // 5个，分别是视频，音频，字幕，数据，附加数据的流规格筛选规则
   std::array<const char*, AVMediaType::AVMEDIA_TYPE_NB> wantedStreamSpec;
 public:
@@ -66,6 +78,9 @@ public:
     bool enableNetwork = true,
     bool disableAud = false,
     bool disableVideo = false,
+    bool disableSub = false,
+    ShowModeEnum showMode = ShowModeEnum::None,
+    uint16_t useDisplayIndex = 0,
     bool alwaysOnTop = false,
     bool borderless = false,
     uint32_t windowWidth = DEF_WIN_WIDTH,
@@ -80,7 +95,11 @@ public:
     uint32_t playOffsetSec = 0,
     std::array<const char*, AVMediaType::AVMEDIA_TYPE_NB> wantedStreamSpec = {
       nullptr, nullptr, nullptr, nullptr, nullptr
-    }
+    },
+    std::string videoDecoderName = "",
+    std::string audioDecoderName = "",
+    std::string subDecoderName = "",
+    bool forceSpecifiedDecoder = false
   );
   // 拷贝构造函数, 目前是用不到的
   SDLVidPlayerSettings(const SDLVidPlayerSettings& setting) = default;
@@ -101,6 +120,9 @@ SDLVidPlayerSettings::SDLVidPlayerSettings(
   bool enableNetwork,
   bool disableAud,
   bool disableVideo,
+  bool disableSub,
+  ShowModeEnum showMode,
+  uint16_t useDisplayIndex,
   bool alwaysOnTop,
   bool borderless,
   uint32_t windowWidth,
@@ -113,12 +135,19 @@ SDLVidPlayerSettings::SDLVidPlayerSettings(
   bool showStatus,
   std::optional<SeekType> seekType,
   uint32_t playOffsetSec,
-  std::array<const char*, AVMediaType::AVMEDIA_TYPE_NB> wantedStreamSpec
+  std::array<const char*, AVMediaType::AVMEDIA_TYPE_NB> wantedStreamSpec,
+  std::string videoDecoderName,
+  std::string audioDecoderName,
+  std::string subDecoderName,
+  bool forceSpecifiedDecoder
 ) :
   windowTitle(std::forward<decltype(title)>(title)),
   enableNetwork(enableNetwork),
   disableAud(disableAud),
   disableVid(disableVideo),
+  disableSub(disableSub),
+  showMode(showMode),
+  useDisplayIndex(useDisplayIndex),
   alwaysOnTop(alwaysOnTop),
   borderless(borderless),
   windowWidth(windowWidth),
@@ -130,7 +159,11 @@ SDLVidPlayerSettings::SDLVidPlayerSettings(
   showStatus(showStatus),
   specifiedSeekType(seekType.has_value()),
   playOffsetSec(playOffsetSec),
-  wantedStreamSpec(wantedStreamSpec)
+  wantedStreamSpec(wantedStreamSpec),
+  videoDecoderName(std::move(videoDecoderName)),
+  audioDecoderName(std::move(audioDecoderName)),
+  subDecoderName(std::move(subDecoderName)),
+  forceSpecifiedDecoder(forceSpecifiedDecoder)
 {
   if (specifiedInputFormat) this->inputFormat = inputFormat.value(); // 如果没有输入格式，
   if (specifiedSeekType) this->seekType = seekType.value();

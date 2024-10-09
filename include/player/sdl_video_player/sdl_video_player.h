@@ -5,7 +5,6 @@
 #ifndef VIDEOPLAYER_H
 #define VIDEOPLAYER_H
 
-#include <fstream>
 #include "player/sdl_video_player/sdl_thread_coordinator.h"
 #include "struct/packet_queue.h"
 #include "util/mem/sdl_mem.h"
@@ -37,8 +36,6 @@ class SDLVideoPlayer final : public VideoPlayer{
   std::unique_ptr<SDL_Renderer, SDL_RendererDeleter> renderer;
   SDL_RendererInfo rendererInfo;
 
-  std::ifstream videoInFile;
-
   PacketQueue vPktq;
   PacketQueue aPktq;
   PacketQueue sPktq;
@@ -49,8 +46,11 @@ class SDLVideoPlayer final : public VideoPlayer{
   void openStream();
   void initAv();
   void initSDL();
+  void initHardWareAfterSDL();
   void read();
   void determineStream();
+  // null_opt
+  std::optional<ErrorDesc> openStreamComponent(AVMediaType type, uint16_t streamIndex);
 
 public:
   explicit SDLVideoPlayer(

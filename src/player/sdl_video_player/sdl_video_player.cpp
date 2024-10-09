@@ -3,6 +3,7 @@
 //
 #include <filesystem>
 #include <functional>
+#include <fstream>
 #include <optional>
 #include <vector>
 #include <limits>
@@ -15,6 +16,7 @@
 #include "util/logger/player_logger.h"
 #include "player/sdl_video_player/sdl_video_player.h"
 
+#include "util/mem/ff_mem.h"
 #ifdef __cplusplus
 extern "C" {
 #include <libavdevice/avdevice.h>
@@ -31,96 +33,116 @@ extern "C" {
 
 namespace fs = std::filesystem;
 
-
-SDLVideoPlayer::SDLVideoPlayer(
-  const std::string& video_path,
-  const std::optional<SDLVidPlayerSettings>& setting
-):
-settings(
-  setting.value_or(
-    SDLVidPlayerSettings(
-      SDLVideoPlayer::programName + " " + video_path,
-      true,
-      false,
-      false,
-      false,
-      false,
-      DEF_WIN_WIDTH,
-      DEF_WIN_HEIGHT
-      )
-    )
-),
-vFrameq(PIC_CAP_MAX, true),
-aFrameq(SAMPLE_CAP_MAX, false),
-sFrameq(SUB_CAP_MAX, false)
-{
-  videoInfo.originalUrl = video_path;
-}
-
-void SDLVideoPlayer::initAv() {
-  avdevice_register_all(); // 高版本的ffmpeg这一步是可选的
-  // 初始化网络
-  if (settings.enableNetwork) avformat_network_init();
-}
-
-void SDLVideoPlayer::initSDL() {
-  uint32_t flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER;
-  if (settings.disableAud) flags &= ~SDL_INIT_AUDIO;
-  if (settings.disableVid) flags &= ~SDL_INIT_VIDEO;
-  if (SDL_Init(flags)) {
-    // 初始化失败
-    throw ErrorDesc::from(ExceptionType::SDLInitFailed, SDL_GetError());
-  }
-  // 使SDL不处理这些事件，以便我们自己处理
-  SDL_EventState(SDL_SYSWMEVENT, SDL_IGNORE);
-  SDL_EventState(SDL_USEREVENT, SDL_IGNORE);
-
-  if (settings.disableVid) return;
-
-  uint32_t sdlFlags = SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE;
-  if (settings.alwaysOnTop) sdlFlags |= SDL_WINDOW_ALWAYS_ON_TOP;
-  if (settings.borderless) sdlFlags |= SDL_WINDOW_BORDERLESS;
-  // 禁用窗口合成器
-  SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
-  // 设置渲染器缩放质量
-  SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
-  // 创建窗口
-  window.reset(SDL_CreateWindow(
-    settings.windowTitle.c_str(),
-    SDL_WINDOWPOS_CENTERED,
-    SDL_WINDOWPOS_CENTERED,
-    settings.windowWidth,
-    settings.windowHeight,
-    sdlFlags
-  ));
-  if (window) {
-    // 创建渲染器
-    renderer.reset(
-    SDL_CreateRenderer(window.get(),
-      -1,
-      SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
-      )
-    );
-    if (!renderer) {
-      PlayerLogger::log(ErrorDesc::from(ExceptionType::SDLHardwareAccelerationFailed, SDL_GetError()));
-      // 如果创建失败，尝试不使用硬件加速
-      renderer.reset(
-        SDL_CreateRenderer(
-        window.get(),
-        -1,
-        0)
-      );
+void SDLVideoPlayer::determineStream() {
+  auto& stIndex = videoInfo.streamIndex;
+  // 差不多nb_streams应该不会太大，所以就用uint16_t了
+  assert(videoInfo.fmtCtx->nb_streams <= std::numeric_limits<uint16_t>::max());
+  for (uint16_t i =0; i < videoInfo.fmtCtx->nb_streams;++i) {
+    AVStream* st = videoInfo.fmtCtx->streams[i];
+    AVMediaType ty = st->codecpar->codec_type;
+    st->discard = AVDISCARD_ALL;
+    if (ty > AVMediaType::AVMEDIA_TYPE_UNKNOWN && settings.wantedStreamSpec[ty]&& stIndex[ty]) {
+      if (avformat_match_stream_specifier(videoInfo.fmtCtx.get(), st, settings.wantedStreamSpec[ty]) > 0) {
+        stIndex[ty] = i; // 对于某一类型的流，选择第一个符合筛选条件的流，若没有，仍是-1
+      }
     }
   }
-  if (renderer) {
-    // 获取渲染器信息
-    if (!SDL_GetRendererInfo(renderer.get(), &rendererInfo))
-      PlayerLogger::log(LogLevel::Info, std::string("Renderer Initialized: ") + rendererInfo.name);
+
+  // 如果确实提供了某种类型的流的筛选条件，但是没有找到，就警告
+  for (uint16_t i =0; i < AVMEDIA_TYPE_NB; ++i) {
+    if (settings.wantedStreamSpec[i]&& stIndex[i] == -1) {
+      auto desc = ErrorDesc::from(
+        ExceptionType::WantedStreamNotFound,
+        std::string("Can't find this type of stream: ") + av_get_media_type_string(static_cast<AVMediaType>(i)) + "mathing your spec" + settings.wantedStreamSpec[i]
+      );
+      PlayerLogger::log(desc);
+    }
   }
-  // 检查一系列创建是否成功
-  if (!window || !renderer || !rendererInfo.num_texture_formats) {
-    throw ErrorDesc::from(ExceptionType::SDLComponentInitFailed, SDL_GetError());
+
+  if (!settings.disableVid) {
+    stIndex[AVMEDIA_TYPE_VIDEO] = av_find_best_stream(videoInfo.fmtCtx.get(),
+                                                     AVMEDIA_TYPE_VIDEO,
+                                                     stIndex[AVMEDIA_TYPE_VIDEO],
+                                                     -1,
+                                                     nullptr,
+                                                     0);
   }
+  if (!settings.disableAud) {
+    stIndex[AVMEDIA_TYPE_AUDIO] = av_find_best_stream(videoInfo.fmtCtx.get(),
+                                                       AVMEDIA_TYPE_AUDIO,
+                                                       stIndex[AVMEDIA_TYPE_AUDIO],
+                                                       stIndex[AVMEDIA_TYPE_VIDEO], // 此音频流应该和已经找到的视频流同步
+                                                       nullptr,
+                                                       0);
+  }
+  if (!settings.disableVid && !settings.disableSub) {
+    /*在related stream中，如果video stream存在，那么subtitle stream应该和video stream同步，否则，和audio stream同步*/
+    stIndex[AVMEDIA_TYPE_SUBTITLE] = av_find_best_stream(videoInfo.fmtCtx.get(),
+                                                         AVMEDIA_TYPE_SUBTITLE,
+                                                         stIndex[AVMEDIA_TYPE_SUBTITLE],
+                                                         stIndex[AVMEDIA_TYPE_AUDIO] >= 0 ? stIndex[AVMEDIA_TYPE_AUDIO] : stIndex[AVMEDIA_TYPE_VIDEO],
+                                                         nullptr,
+                                                         0);
+  }
+}
+
+std::optional<ErrorDesc> SDLVideoPlayer::openStreamComponent(AVMediaType type, uint16_t streamIndex) {
+  assert(streamIndex < videoInfo.fmtCtx->nb_streams); // 因为调用这个函数之前已经确定了这个streamIndex是合法的，责任在调用者
+  int ret;
+  AVStream* st = videoInfo.fmtCtx->streams[streamIndex];
+
+  AVCodecContext* codecCtx = avcodec_alloc_context3(nullptr);
+  if ( !codecCtx ) return ErrorDesc::from(ExceptionType::MemoryAllocFailed, "Can't allocate AVCodecContext");
+  std::unique_ptr<AVCodecContext, AVCodecContextDeleter> codecCtxPtr(codecCtx); // 防止内存泄漏
+
+  ret = avcodec_parameters_to_context(codecCtx, st->codecpar); // 从codecpar中拷贝信息到codecCtx
+  if (ret < 0) return ErrorDesc::from(ExceptionType::FFmpegCodecSetFailed, std::string("Can't init codec context for ") + std::to_string(streamIndex));
+
+  codecCtx->pkt_timebase = st->time_base;
+
+  const AVCodec* codec = nullptr;
+  const std::string* specDecoderName;
+  int32_t* lastStInd = &playState.lastAudStInd;
+  switch (type) {
+    case AVMEDIA_TYPE_VIDEO:
+      specDecoderName = &settings.videoDecoderName;
+      lastStInd = &playState.lastVidStInd;
+      break;
+    case AVMEDIA_TYPE_AUDIO:
+      specDecoderName = &settings.audioDecoderName;
+      break;
+    case AVMEDIA_TYPE_SUBTITLE:
+      specDecoderName = &settings.subDecoderName;
+      lastStInd = &playState.lastSubStInd;
+      break;
+    default:
+      return ErrorDesc::from(ExceptionType::InvalidArgument, "Unsupported media type");
+  }
+  if (!specDecoderName->empty()) {
+    codec = avcodec_find_decoder_by_name(specDecoderName->c_str());
+    if (!codec) {
+      if (settings.forceSpecifiedDecoder) {
+        return ErrorDesc::from(ExceptionType::FFmpegCodecSetFailed, std::string("Can't find decoder: ") + *specDecoderName);
+      }
+      codec = avcodec_find_decoder(codecCtx->codec_id);
+      if (!codec) {
+        return ErrorDesc::from(ExceptionType::FFmpegCodecSetFailed, std::string("Try to use default decoder, but can't find decoder: ") + avcodec_get_name(codecCtx->codec_id));
+      }
+      // 说明没有使用指定的解码器，而是使用了默认的解码器， 输出warning
+      PlayerLogger::log(ErrorDesc::from(ExceptionType::UseOtherDecoder, std::string("Try to use default decoder, but use decoder: ") + avcodec_get_name(codecCtx->codec_id)));
+    }
+    codecCtx->codec_id = codec->id; // 这里是为了保证codec_id和codec->id一致
+  }else {
+    codec = avcodec_find_decoder(codecCtx->codec_id);
+    if (!codec) {
+      return ErrorDesc::from(ExceptionType::FFmpegCodecSetFailed, std::string("Can't find decoder: ") + avcodec_get_name(codecCtx->codec_id));
+    }
+  }
+  // 这里说明找到了解码器, 设置lastStreamInd
+  *lastStInd = streamIndex;
+  // codecCtx->lowres;
+  // codec->max_lowres;
+  return std::nullopt;
 }
 
 void SDLVideoPlayer::read() {
@@ -180,31 +202,26 @@ void SDLVideoPlayer::read() {
   }
 
   videoInfo.isRealTime = FFUtil::isRealTime(fmtCtx);
-
   if (settings.showStatus) {
     av_dump_format(fmtCtx, 0, videoInfo.originalUrl.c_str(), 0);
   }
+  determineStream();
+  if (videoInfo.streamIndex[AVMEDIA_TYPE_VIDEO] >= 0) {
+    AVStream* st = fmtCtx->streams[videoInfo.streamIndex[AVMEDIA_TYPE_VIDEO]];
+    AVCodecParameters* codecpar = st->codecpar;
+    AVRational sar = av_guess_sample_aspect_ratio(fmtCtx, st, nullptr);
+    std::tie(playState.defaultPicWidth, playState.defaultPicHeight) = FFUtil::getPictureDisplayRect(codecpar->width,
+                                                                                                            codecpar->height,
+                                                                                                            sar,
+                                                                                                            settings.windowWidth,
+                                                                                                            settings.windowHeight);
 
-
-
-
-  av_packet_free(&pkt);
-}
-
-void SDLVideoPlayer::determineStream() {
-  // 差不多nb_streams应该不会太大，所以就用uint16_t了
-  assert(videoInfo.fmtCtx->nb_streams <= std::numeric_limits<uint16_t>::max());
-  for (uint16_t i =0; i < videoInfo.fmtCtx->nb_streams;++i) {
-    AVStream* st = videoInfo.fmtCtx->streams[i];
-    AVMediaType ty = st->codecpar->codec_type;
-    st->discard = AVDISCARD_ALL;
-    if (ty > AVMediaType::AVMEDIA_TYPE_UNKNOWN && settings.wantedStreamSpec[ty]&& videoInfo.streamIndex[ty]) {
-      if (avformat_match_stream_specifier(videoInfo.fmtCtx.get(), st, settings.wantedStreamSpec[ty]) > 0) {
-        videoInfo.streamIndex[ty] = i;
-      }
-    }
   }
-  int x =0;
+  // 开始打开各个流
+  if (videoInfo.streamIndex[AVMEDIA_TYPE_VIDEO] >= 0) {
+    auto err = openStreamComponent(AVMEDIA_TYPE_VIDEO, videoInfo.streamIndex[AVMEDIA_TYPE_VIDEO]);
+  }
+  av_packet_free(&pkt);
 }
 
 
@@ -247,9 +264,12 @@ void SDLVideoPlayer::play() {
       throw ErrorDesc::from(ExceptionType::ResourceNotFound, std::string("File is too small: ") + videoInfo.originalUrl);
     }
     // 打开文件检查可读性
-    videoInFile.open(videoInfo.originalUrl, std::ios::in | std::ios::binary);
+    std::ifstream videoInFile(videoInfo.originalUrl, std::ios::in | std::ios::binary);
     if (!videoInFile.is_open()) {
       throw ErrorDesc::from(ExceptionType::FileUnreadable, std::string("Can't open file: ") + videoInfo.originalUrl);
+    }else {
+      // 关闭文件
+      videoInFile.close();
     }
   }
   // 等到play函数调用时才初始化

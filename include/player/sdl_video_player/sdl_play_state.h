@@ -13,9 +13,9 @@ struct SDLPlayState {
   friend class SDLVideoPlayer;
 private:
   // 以下三个index是播放的流的index，-1表示没有播放
-  int16_t lastVidStInd;
-  int16_t lastAudStInd;
-  int16_t lastSubStInd;
+  int32_t lastVidStInd;
+  int32_t lastAudStInd;
+  int32_t lastSubStInd;
   uint16_t vidStInd;
   uint16_t audStInd;
   uint16_t subStInd;
@@ -42,6 +42,9 @@ private:
   uint16_t maxFrameDuration; // 最大帧间隔，单位ms
 
   uint64_t playOffset; // 偏移指定时间开始播放, 单位是AV_TIME_BASE_Q
+
+  uint32_t defaultPicWidth;
+  uint32_t defaultPicHeight;
 public:
   SDLPlayState();
   static int getAborted(void* state);

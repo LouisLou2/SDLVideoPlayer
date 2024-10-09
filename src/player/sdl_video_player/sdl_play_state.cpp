@@ -32,5 +32,7 @@ SDLPlayState::SDLPlayState():
   eof(false), // 默认没有到达文件尾
   abortReq(false), // 默认没有退出请求
   maxFrameDuration(0),// 0是非法的，这个也必须后来改动
-  playOffset(0){
+  playOffset(0),
+  defaultPicWidth(0),
+  defaultPicHeight(0){
 }

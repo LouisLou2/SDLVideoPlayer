@@ -18,6 +18,7 @@ enum class ExceptionType : uint16_t { // 更改这里记得更改ExceptionTypeUt
   NoneComplaint,
   MemoryAllocFailed,
   Unimplemented,
+  UnsupportedHardware,
   /*----error----*/
   UnsupportedFormat,
   InvalidArgument,
@@ -27,16 +28,19 @@ enum class ExceptionType : uint16_t { // 更改这里记得更改ExceptionTypeUt
   BrokenStream,
   SDLInitFailed,
   SDLComponentInitFailed,
+  FFmpegCodecSetFailed,
   /*----warn----*/
   SDLHardwareAccelerationFailed,
   AutoAdjust,
   PlaySeekFailed,
+  WantedStreamNotFound,
+  UseOtherDecoder,
 };
 
 struct ExceptionTypeUtil {
-  static constexpr uint16_t typeNum = static_cast<uint16_t>(ExceptionType::PlaySeekFailed) + 1;
-  static constexpr uint16_t criticalMax = static_cast<uint16_t>(ExceptionType::Unimplemented);
-  static constexpr uint16_t errorMax = static_cast<uint16_t>(ExceptionType::SDLComponentInitFailed);
+  static constexpr uint16_t typeNum = static_cast<uint16_t>(ExceptionType::UseOtherDecoder) + 1;
+  static constexpr uint16_t criticalMax = static_cast<uint16_t>(ExceptionType::UnsupportedHardware);
+  static constexpr uint16_t errorMax = static_cast<uint16_t>(ExceptionType::FFmpegCodecSetFailed);
   static constexpr std::array<std::string_view, typeNum> typeStr = {
     /*----critical----*/
     "Unknown", // 0
@@ -44,6 +48,7 @@ struct ExceptionTypeUtil {
     "None Complaint",
     "Memory Alloc Failed",
     "Unimplemented",
+    "Unsupported Hardware",
     /*----error----*/
     "Unsupported Format",
     "Invalid Argument",
@@ -55,7 +60,8 @@ struct ExceptionTypeUtil {
     /*----warn----*/
     "SDL Hardware Acceleration Failed",
     "Auto Adjust",
-    "Play Seek Failed"
+    "Play Seek Failed",
+    "Wanted Stream Not Found",
 };
   inline static std::string_view toStr(ExceptionType type);
   inline static LogLevel getLogLevel(ExceptionType type);

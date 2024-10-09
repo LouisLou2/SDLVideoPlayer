@@ -4,7 +4,8 @@
 
 #ifndef FF_OPT_UTIL_H
 #define FF_OPT_UTIL_H
-#include <vector>
+#include <array>
+#include <tuple>
 #include "player/sdl_video_player/sdl_vid_player_setting.h"
 #ifdef __cplusplus
 extern "C" {
@@ -23,6 +24,11 @@ class FFUtil {
     "sdp"
   };
 public:
+  /*
+   * fw: frame width, fh: frame height, par: pixel aspect ratio
+   * 注意frame width和frame height是帧的宽度像素和高度像素
+   */
+  static std::tuple<uint32_t,uint32_t> getPictureDisplayRect(uint32_t fw, uint32_t fh, AVRational par, uint32_t wantedWidth, uint32_t wantedHeight);
   // ReatTime != Network-Based
   static bool isRealTime(const AVFormatContext* iformat);
   static inline bool hasDiscontinuousTS(const AVInputFormat* iformat);
