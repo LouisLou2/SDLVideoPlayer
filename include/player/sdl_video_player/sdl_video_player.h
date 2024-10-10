@@ -5,8 +5,9 @@
 #ifndef VIDEOPLAYER_H
 #define VIDEOPLAYER_H
 
+#include "sdl_cache_collection.h"
+#include "sdl_media_filter_info.h"
 #include "player/sdl_video_player/sdl_thread_coordinator.h"
-#include "struct/packet_queue.h"
 #include "util/mem/sdl_mem.h"
 #include "player/video_player.h"
 #include "player/sdl_video_player/sdl_play_state.h"
@@ -31,17 +32,12 @@ class SDLVideoPlayer final : public VideoPlayer{
   VideoBasicInfo videoInfo;
   SDLPlayState playState;
   SDLThreadCoordinator coordinator;
+  SDLMediaFilterInfo mediaFilterInfo;
+  SDLPlayerCacheCollection cacheCollection;
 
   std::unique_ptr<SDL_Window, SDL_WindowDeleter> window;
   std::unique_ptr<SDL_Renderer, SDL_RendererDeleter> renderer;
   SDL_RendererInfo rendererInfo;
-
-  PacketQueue vPktq;
-  PacketQueue aPktq;
-  PacketQueue sPktq;
-  FrameQueue vFrameq;
-  FrameQueue aFrameq;
-  FrameQueue sFrameq;
 
   void openStream();
   void initAv();
@@ -51,7 +47,7 @@ class SDLVideoPlayer final : public VideoPlayer{
   void determineStream();
   // null_opt
   std::optional<ErrorDesc> openStreamComponent(AVMediaType type, uint16_t streamIndex);
-
+  std::optional<ErrorDesc> configAudioFilter();
 public:
   explicit SDLVideoPlayer(
     const std::string& video_path,

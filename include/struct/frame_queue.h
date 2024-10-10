@@ -25,11 +25,11 @@ extern "C"{
 class FrameQueue {
   static constexpr uint16_t CapMax = std::max(PIC_CAP_MAX, std::max(SAMPLE_CAP_MAX, SUB_CAP_MAX));
   // 内部数据结构：ring buffer
-  uint16_t capacity; // 队列中留一个空位，用于区分队列满和队列空
-  uint16_t bufCap;
+  size_t capacity; // 队列中留一个空位，用于区分队列满和队列空
+  size_t bufCap;
   std::array<Frame, CapMax + 1> buf; // 内部数据结构，始终分配最大的空间，不用担心空间浪费，因为最大的空间也才几个
-  uint16_t head = 0; // head指向下一个可读位置
-  uint16_t tail = 0; // tail指向下一个可写位置
+  size_t head = 0; // head指向下一个可读位置
+  size_t tail = 0; // tail指向下一个可写位置
 
   // 读写同步
   std::mutex mtx;

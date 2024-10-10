@@ -34,9 +34,11 @@ settings(
       )
     )
 ),
-vFrameq(PIC_CAP_MAX, true),
-aFrameq(SAMPLE_CAP_MAX, false),
-sFrameq(SUB_CAP_MAX, false)
+cacheCollection(
+  PIC_CAP_MAX, true,
+  SAMPLE_CAP_MAX, false,
+  SUB_CAP_MAX, false
+)
 {
   videoInfo.originalUrl = video_path;
 }

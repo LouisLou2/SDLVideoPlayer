@@ -11,10 +11,10 @@
 #include "const/error_type.h"
 
 class ErrorDesc : public std::exception {
-  const LogLevel level;
-  const ExceptionType type;
-  const std::string_view typeStr;
-  const std::string desc;
+  LogLevel level;
+  ExceptionType type;
+  std::string_view typeStr;
+  std::string desc;
   std::string formattedMsg;
   /*
    * 构造函数私有化，只能通过from方法创建
@@ -23,6 +23,14 @@ class ErrorDesc : public std::exception {
 public:
   [[nodiscard]] LogLevel getLevel() const { return level; }
   [[nodiscard]] const char* what() const noexcept override { return formattedMsg.c_str(); };
+  // 移动构造函数
+  ErrorDesc(ErrorDesc&&) noexcept;
+  // 移动赋值运算符
+  ErrorDesc& operator=(ErrorDesc&&) noexcept;
+  // 拷贝构造函数
+  ErrorDesc(const ErrorDesc&);
+  // 拷贝赋值运算符
+  ErrorDesc& operator=(const ErrorDesc&);
   /*
    * 当实参desc是string的右值引用，右值，const char*或者char*时，auto&&会推导为...
    */
@@ -35,8 +43,47 @@ ErrorDesc::ErrorDesc(LogLevel level, ExceptionType type, std::string_view typeSt
   typeStr(typeStr),
   desc(std::forward<decltype(desc)>(desc)),
   formattedMsg(std::format("[ Code: {} ] {}: {}", ExceptionTypeUtil::typeCode(this->type), this->typeStr, this->desc)){}
-  ErrorDesc ErrorDesc::from(ExceptionType ty, auto&& desc) {
+
+ErrorDesc ErrorDesc::from(ExceptionType ty, auto&& desc) {
   return ErrorDesc(ExceptionTypeUtil::getLogLevel(ty), ty, ExceptionTypeUtil::toStr(ty), std::forward<decltype(desc)>(desc));
+}
+
+inline ErrorDesc::ErrorDesc(ErrorDesc&& other) noexcept :
+  level(other.level),
+  type(other.type),
+  typeStr(other.typeStr), // 这个直接复制string_view是即可，他指向的字符串是静态的
+  desc(std::move(other.desc)),
+  formattedMsg(std::move(other.formattedMsg)){}
+
+inline ErrorDesc& ErrorDesc::operator=(ErrorDesc&& other) noexcept {
+  if (this == &other) {
+    return *this;
+  }
+  level = other.level;
+  type = other.type;
+  typeStr = other.typeStr;
+  desc = std::move(other.desc);
+  formattedMsg = std::move(other.formattedMsg);
+  return *this;
+}
+
+inline ErrorDesc::ErrorDesc(const ErrorDesc& other) :
+  level(other.level),
+  type(other.type),
+  typeStr(other.typeStr),
+  desc(other.desc),
+  formattedMsg(other.formattedMsg){}
+
+inline ErrorDesc& ErrorDesc::operator=(const ErrorDesc& other) {
+  if (this == &other) {
+    return *this;
+  }
+  level = other.level;
+  type = other.type;
+  typeStr = other.typeStr;
+  desc = other.desc;
+  formattedMsg = other.formattedMsg;
+  return *this;
 }
 
 #endif //ERROR_DESC_H

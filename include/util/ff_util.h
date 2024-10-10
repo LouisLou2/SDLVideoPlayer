@@ -34,6 +34,11 @@ public:
   static inline bool hasDiscontinuousTS(const AVInputFormat* iformat);
   static inline const AVInputFormat* getInputFormat(InputFormatEnum ifmtEnum);
   static inline SeekType decideSeekType(const AVInputFormat* iformat);
+  // 返回的vector中的元素是指向AVDictionaryEntry的指针，依附于动态分配的内存，注意使用它的时候不要提前释放内存
+  static std::vector<AVDictionaryEntry*> getAllEntries(const AVDictionary* dict);
+  static std::string stringifyAVDictionary(const std::vector<AVDictionaryEntry*>& entries);
+  static std::string getAllPairString(const AVDictionary* dict, const char* split = ":");
+  static std::string getAllPairString(const std::map<std::string,std::string>& dict, const char* split = ":");
 };
 
 inline bool FFUtil::hasDiscontinuousTS(const AVInputFormat* iformat) {

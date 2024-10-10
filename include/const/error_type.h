@@ -22,25 +22,27 @@ enum class ExceptionType : uint16_t { // 更改这里记得更改ExceptionTypeUt
   /*----error----*/
   UnsupportedFormat,
   InvalidArgument,
-
   ResourceNotFound,
   FileUnreadable,
   BrokenStream,
   SDLInitFailed,
   SDLComponentInitFailed,
   FFmpegCodecSetFailed,
+  UnusedFFOption,
   /*----warn----*/
   SDLHardwareAccelerationFailed,
   AutoAdjust,
   PlaySeekFailed,
   WantedStreamNotFound,
   UseOtherDecoder,
+  UnsupportedLowResLevel,
+  BigConfiguration
 };
 
 struct ExceptionTypeUtil {
-  static constexpr uint16_t typeNum = static_cast<uint16_t>(ExceptionType::UseOtherDecoder) + 1;
+  static constexpr uint16_t typeNum = static_cast<uint16_t>(ExceptionType::BigConfiguration) + 1;
   static constexpr uint16_t criticalMax = static_cast<uint16_t>(ExceptionType::UnsupportedHardware);
-  static constexpr uint16_t errorMax = static_cast<uint16_t>(ExceptionType::FFmpegCodecSetFailed);
+  static constexpr uint16_t errorMax = static_cast<uint16_t>(ExceptionType::UnusedFFOption);
   static constexpr std::array<std::string_view, typeNum> typeStr = {
     /*----critical----*/
     "Unknown", // 0
@@ -57,11 +59,16 @@ struct ExceptionTypeUtil {
     "Broken Stream",
     "SDL Init Failed",
     "SDL Component Init Failed",
+    "FFmpeg Codec Set Failed",
+    "Unused FF Option",
     /*----warn----*/
     "SDL Hardware Acceleration Failed",
     "Auto Adjust",
     "Play Seek Failed",
     "Wanted Stream Not Found",
+    "Use Other Decoder",
+    "Unsupported Low Res Level",
+    "Big Configuration"
 };
   inline static std::string_view toStr(ExceptionType type);
   inline static LogLevel getLogLevel(ExceptionType type);

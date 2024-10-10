@@ -5,22 +5,27 @@
 #ifndef SDL_VIDEO_PLAYER_SETTING_H
 #define SDL_VIDEO_PLAYER_SETTING_H
 
+#include <map>
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
+#include <format>
 
+#include "util/calc.h"
 #include "const/show_mode_enum.h"
 #ifdef __cplusplus
 extern "C"{
 #include <libavutil/dict.h>
 #include <libavformat/avformat.h>
 #include <libavutil/avutil.h>
+#include <libavcodec/avcodec.h>
 }
 #else
 #include <libavutil/dict.h>
 #include <libavformat/avformat.h>
 #include <libavutil/avutil.h>
+#include <libavcodec/avcodec.h>
 #endif
 
 #include "util/logger/player_logger.h"
@@ -33,6 +38,14 @@ extern "C"{
 
 #define MAX_VOLUME 100
 #define MIN_VOLUME 0
+
+#define MAX_DECODER_THREADS 16
+#define MIN_DECODER_THREADS 1
+
+#define MAX_FILTER_THREADS 16
+#define MIN_FILTER_THREADS 1
+
+#define THREADS_NUM_AUTO 0
 
 class SDLVidPlayerSettings : public PlayerSetting{
   friend class SDLVideoPlayer;
@@ -67,11 +80,18 @@ class SDLVidPlayerSettings : public PlayerSetting{
   std::string videoDecoderName;
   std::string audioDecoderName;
   std::string subDecoderName;
+  // 5个，分别是视频，音频，字幕，数据，附加数据的流规格筛选规则
+  std::array<const char*, AVMEDIA_TYPE_NB> wantedStreamSpec;
   // 允许在decoder找不到指定的流时，使用默认的流
   bool forceSpecifiedDecoder;
+  uint8_t lowres; // 低分辨率等级，0表示不使用低分辨率
+  bool decodeFastMode;
+  uint8_t decoderThreadsNum; // 解码线程数
+  uint8_t filterThreadsNum; // 过滤线程数
 
-  // 5个，分别是视频，音频，字幕，数据，附加数据的流规格筛选规则
-  std::array<const char*, AVMediaType::AVMEDIA_TYPE_NB> wantedStreamSpec;
+  std::map<std::string, std::string> audioFilterOpts;
+  std::map<std::string, std::string> videoFilterOpts;
+  std::map<std::string, std::string> swrOpts;
 public:
   explicit SDLVidPlayerSettings(
     auto&& title = "Unnamed Player",
@@ -99,7 +119,16 @@ public:
     std::string videoDecoderName = "",
     std::string audioDecoderName = "",
     std::string subDecoderName = "",
-    bool forceSpecifiedDecoder = false
+    bool forceSpecifiedDecoder = false,
+    uint8_t lowres = 0,
+    bool decodeFastMode = false,
+    std::optional<uint8_t>decodeThreadsNum = std::nullopt,
+    std::optional<uint8_t> filterThreadsNum = std::nullopt,
+
+    // TODO: 配置上使用map是偷懒的行为，要不就提取类进行静态的配置， 要不就必须对传入的参数进行检查， 这个之后再考虑吧
+    std::map<std::string, std::string>&& audioFilterOpts = {},
+    std::map<std::string, std::string>&& videoFilterOpts = {},
+    std::map<std::string, std::string>&& swrOpts = {}
   );
   // 拷贝构造函数, 目前是用不到的
   SDLVidPlayerSettings(const SDLVidPlayerSettings& setting) = default;
@@ -113,6 +142,8 @@ public:
 
   [[nodiscard]] AVDictionary* getFormatOpt() const;
   [[nodiscard]] std::vector<AVDictionary*> getCodecOpts(const AVFormatContext* fmtCtx);
+  // TODO: 此函数拿到的信息太丰富了，后续尝试精简
+  [[nodiscard]] AVDictionary* filterOpts(const AVCodec* codec, const AVCodecContext* codecCtx, const AVFormatContext* fmt, const AVStream* st);
 };
 
 SDLVidPlayerSettings::SDLVidPlayerSettings(
@@ -139,7 +170,14 @@ SDLVidPlayerSettings::SDLVidPlayerSettings(
   std::string videoDecoderName,
   std::string audioDecoderName,
   std::string subDecoderName,
-  bool forceSpecifiedDecoder
+  bool forceSpecifiedDecoder,
+  uint8_t lowres,
+  bool decodeFastMode,
+  std::optional<uint8_t> decodeThreadsNum,
+  std::optional<uint8_t> filterThreadsNum,
+  std::map<std::string, std::string>&& audioFilterOpts,
+  std::map<std::string, std::string>&& videoFilterOpts,
+  std::map<std::string, std::string>&& swrOpts
 ) :
   windowTitle(std::forward<decltype(title)>(title)),
   enableNetwork(enableNetwork),
@@ -163,18 +201,44 @@ SDLVidPlayerSettings::SDLVidPlayerSettings(
   videoDecoderName(std::move(videoDecoderName)),
   audioDecoderName(std::move(audioDecoderName)),
   subDecoderName(std::move(subDecoderName)),
-  forceSpecifiedDecoder(forceSpecifiedDecoder)
+  forceSpecifiedDecoder(forceSpecifiedDecoder),
+  lowres(lowres),
+  decodeFastMode(decodeFastMode),
+  decoderThreadsNum(decodeThreadsNum.value_or(0)),
+  filterThreadsNum(filterThreadsNum.value_or(0)),
+  audioFilterOpts(std::move(audioFilterOpts)),
+  videoFilterOpts(std::move(videoFilterOpts)),
+  swrOpts(std::move(swrOpts))
 {
   if (specifiedInputFormat) this->inputFormat = inputFormat.value(); // 如果没有输入格式，
   if (specifiedSeekType) this->seekType = seekType.value();
-  if (volumeWithin100 > MAX_VOLUME) {
+  if (volumeWithin100 > MAX_VOLUME || volumeWithin100 < MIN_VOLUME) {
+    // 修正
+    this->volumeWithin100 = Calc::clip(volumeWithin100, MIN_VOLUME, MAX_VOLUME);
     // 给出警告
     PlayerLogger::log(ErrorDesc::from(
       ExceptionType::AutoAdjust,
-      "Volume should be in range [0, 100], but got " + std::to_string(volumeWithin100)
-    ));
-    // 修正
-    this->volumeWithin100 = MAX_VOLUME;
+      std::format("Volume should be in range [{}, {}], but got {}, so adjust to {}", MIN_VOLUME, MAX_VOLUME, volumeWithin100, this->volumeWithin100)
+      )
+    );
+  }
+  if (decodeThreadsNum.has_value() && (decodeThreadsNum == 0 || decodeThreadsNum>16) ) {
+    // 给出警告
+    this->decoderThreadsNum = THREADS_NUM_AUTO;
+    PlayerLogger::log(ErrorDesc::from(
+      ExceptionType::AutoAdjust,
+      std::format("decode threads num should be in range [{}, {}], but got {}, so adjust to auto", MIN_DECODER_THREADS, MAX_DECODER_THREADS, decodeThreadsNum.value())
+      )
+    );
+  }
+  if (filterThreadsNum.has_value() && (filterThreadsNum == 0 || filterThreadsNum>16) ) {
+    // 给出警告
+    this->filterThreadsNum = THREADS_NUM_AUTO;
+    PlayerLogger::log(ErrorDesc::from(
+      ExceptionType::AutoAdjust,
+      std::format("filter threads num should be in range [{}, {}], but got {}, so adjust to auto", MIN_FILTER_THREADS, MAX_FILTER_THREADS, filterThreadsNum.value())
+      )
+    );
   }
 }
 

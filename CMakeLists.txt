@@ -45,7 +45,9 @@ add_executable(tool_try
 #    include/entity/packet.h
 #    src/test/test_lib_queue.cpp
     ${ALL_SOURCE_FILES}
-    src/player/sdl_video_player/sdl_video_player_init.cpp
+    src/player/sdl_video_player/sdl_player_filter_and_resampling.cpp
+    include/player/sdl_video_player/sdl_cache_collection.h
+    src/player/sdl_video_player/sdl_media_filter_info.cpp
 )
 
 pkg_check_modules(AVCODEC REQUIRED IMPORTED_TARGET libavcodec)
