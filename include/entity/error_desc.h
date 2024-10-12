@@ -21,6 +21,8 @@ class ErrorDesc : public std::exception {
    */
   ErrorDesc(LogLevel level, ExceptionType type, std::string_view typeStr, auto&& desc);
 public:
+  // 注意默认构造函数创建的对象不具有任何意义，只是为了方便需要创建一个空对象的情况
+  ErrorDesc() = default;
   [[nodiscard]] LogLevel getLevel() const { return level; }
   [[nodiscard]] const char* what() const noexcept override { return formattedMsg.c_str(); };
   // 移动构造函数
@@ -34,7 +36,8 @@ public:
   /*
    * 当实参desc是string的右值引用，右值，const char*或者char*时，auto&&会推导为...
    */
-  [[nodiscard]] inline static ErrorDesc from(ExceptionType ty, auto&& desc);
+  void reset(ExceptionType ty, auto&& desc);
+  [[nodiscard]] static ErrorDesc from(ExceptionType ty, auto&& desc);
 };
 
 ErrorDesc::ErrorDesc(LogLevel level, ExceptionType type, std::string_view typeStr, auto&& desc) :
@@ -43,6 +46,13 @@ ErrorDesc::ErrorDesc(LogLevel level, ExceptionType type, std::string_view typeSt
   typeStr(typeStr),
   desc(std::forward<decltype(desc)>(desc)),
   formattedMsg(std::format("[ Code: {} ] {}: {}", ExceptionTypeUtil::typeCode(this->type), this->typeStr, this->desc)){}
+
+void ErrorDesc::reset(ExceptionType ty, auto&& desc) {
+  type = ty;
+  typeStr = ExceptionTypeUtil::toStr(ty);
+  this->desc = std::forward<decltype(desc)>(desc);
+  formattedMsg = std::format("[ Code: {} ] {}: {}", ExceptionTypeUtil::typeCode(this->type), this->typeStr, this->desc);
+}
 
 ErrorDesc ErrorDesc::from(ExceptionType ty, auto&& desc) {
   return ErrorDesc(ExceptionTypeUtil::getLogLevel(ty), ty, ExceptionTypeUtil::toStr(ty), std::forward<decltype(desc)>(desc));

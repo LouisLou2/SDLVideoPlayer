@@ -27,7 +27,8 @@ enum class ExceptionType : uint16_t { // 更改这里记得更改ExceptionTypeUt
   BrokenStream,
   SDLInitFailed,
   SDLComponentInitFailed,
-  FFmpegCodecSetFailed,
+  FFmpegSetFailed,
+  FFComponentInitFailed,
   UnusedFFOption,
   /*----warn----*/
   SDLHardwareAccelerationFailed,
@@ -59,7 +60,8 @@ struct ExceptionTypeUtil {
     "Broken Stream",
     "SDL Init Failed",
     "SDL Component Init Failed",
-    "FFmpeg Codec Set Failed",
+    "FFmpeg Set Failed",
+    "FF Component Init Failed",
     "Unused FF Option",
     /*----warn----*/
     "SDL Hardware Acceleration Failed",

@@ -89,8 +89,8 @@ class SDLVidPlayerSettings : public PlayerSetting{
   uint8_t decoderThreadsNum; // 解码线程数
   uint8_t filterThreadsNum; // 过滤线程数
 
-  std::map<std::string, std::string> audioFilterOpts;
-  std::map<std::string, std::string> videoFilterOpts;
+  // TODO：关于audioFilterGraphStr我自己也还不是太明白，后续再研究
+  std::string audioFilterGraphStr;
   std::map<std::string, std::string> swrOpts;
 public:
   explicit SDLVidPlayerSettings(
@@ -126,8 +126,7 @@ public:
     std::optional<uint8_t> filterThreadsNum = std::nullopt,
 
     // TODO: 配置上使用map是偷懒的行为，要不就提取类进行静态的配置， 要不就必须对传入的参数进行检查， 这个之后再考虑吧
-    std::map<std::string, std::string>&& audioFilterOpts = {},
-    std::map<std::string, std::string>&& videoFilterOpts = {},
+    std::string audioFilterGraphStr = "",
     std::map<std::string, std::string>&& swrOpts = {}
   );
   // 拷贝构造函数, 目前是用不到的
@@ -175,8 +174,7 @@ SDLVidPlayerSettings::SDLVidPlayerSettings(
   bool decodeFastMode,
   std::optional<uint8_t> decodeThreadsNum,
   std::optional<uint8_t> filterThreadsNum,
-  std::map<std::string, std::string>&& audioFilterOpts,
-  std::map<std::string, std::string>&& videoFilterOpts,
+  std::string audioFilterGraphStr,
   std::map<std::string, std::string>&& swrOpts
 ) :
   windowTitle(std::forward<decltype(title)>(title)),
@@ -206,8 +204,7 @@ SDLVidPlayerSettings::SDLVidPlayerSettings(
   decodeFastMode(decodeFastMode),
   decoderThreadsNum(decodeThreadsNum.value_or(0)),
   filterThreadsNum(filterThreadsNum.value_or(0)),
-  audioFilterOpts(std::move(audioFilterOpts)),
-  videoFilterOpts(std::move(videoFilterOpts)),
+  audioFilterGraphStr(std::move(audioFilterGraphStr)),
   swrOpts(std::move(swrOpts))
 {
   if (specifiedInputFormat) this->inputFormat = inputFormat.value(); // 如果没有输入格式，

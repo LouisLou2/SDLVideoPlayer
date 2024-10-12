@@ -20,7 +20,7 @@ class AudioParams {
   friend class SDLMediaFilterInfo;
   friend class SDLVideoPlayer;
   uint32_t freq;
-  AVChannelLayout channelLayout;
+  AVChannelLayout ch_layout;
   AVSampleFormat fmt;
   uint32_t frameSize;
   uint32_t bytePerSec;
@@ -31,6 +31,11 @@ public:
   //   AVSampleFormat fmt,
   //   uint32_t frameSize,
   //   uint32_t bytePerSec);
+  void setFreq(uint32_t freq) {this->freq = freq;}
+  void  copySetChLayout(const AVChannelLayout* ch_layout) {
+    av_channel_layout_copy(&this->ch_layout, ch_layout);
+  }
+  void setFmt(AVSampleFormat fmt) {this->fmt = fmt;}
 };
 
 // inline AudioParams::AudioParams(

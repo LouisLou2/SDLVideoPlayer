@@ -23,6 +23,7 @@ extern "C" {
 #include <SDL2/SDL.h>
 #endif
 
+#define THE_ONLY_ALLOWED_SAMPLE_FMT AV_SAMPLE_FMT_S16
 
 class SDLVideoPlayer final : public VideoPlayer{
 

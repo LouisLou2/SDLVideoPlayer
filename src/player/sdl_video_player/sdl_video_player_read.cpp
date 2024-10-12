@@ -82,7 +82,7 @@ std::optional<ErrorDesc> SDLVideoPlayer::openStreamComponent(AVMediaType type, u
   std::unique_ptr<AVCodecContext, AVCodecContextDeleter> codecCtxPtr(codecCtx); // 防止内存泄漏
 
   ret = avcodec_parameters_to_context(codecCtx, st->codecpar); // 从codecpar中拷贝信息到codecCtx
-  if (ret < 0) return ErrorDesc::from(ExceptionType::FFmpegCodecSetFailed, std::string("Can't init codec context for ") + std::to_string(streamIndex));
+  if (ret < 0) return ErrorDesc::from(ExceptionType::FFmpegSetFailed, std::string("Can't init codec context for ") + std::to_string(streamIndex));
 
   codecCtx->pkt_timebase = st->time_base;
 
@@ -108,11 +108,11 @@ std::optional<ErrorDesc> SDLVideoPlayer::openStreamComponent(AVMediaType type, u
     codec = avcodec_find_decoder_by_name(specDecoderName->c_str());
     if (!codec) {
       if (settings.forceSpecifiedDecoder) {
-        return ErrorDesc::from(ExceptionType::FFmpegCodecSetFailed, std::string("Can't find decoder: ") + *specDecoderName);
+        return ErrorDesc::from(ExceptionType::FFmpegSetFailed, std::string("Can't find decoder: ") + *specDecoderName);
       }
       codec = avcodec_find_decoder(codecCtx->codec_id);
       if (!codec) {
-        return ErrorDesc::from(ExceptionType::FFmpegCodecSetFailed, std::string("Try to use default decoder, but can't find decoder: ") + avcodec_get_name(codecCtx->codec_id));
+        return ErrorDesc::from(ExceptionType::FFmpegSetFailed, std::string("Try to use default decoder, but can't find decoder: ") + avcodec_get_name(codecCtx->codec_id));
       }
       // 说明没有使用指定的解码器，而是使用了默认的解码器， 输出warning
       PlayerLogger::log(ErrorDesc::from(ExceptionType::UseOtherDecoder, std::string("Try to use default decoder, but use decoder: ") + avcodec_get_name(codecCtx->codec_id)));
@@ -121,7 +121,7 @@ std::optional<ErrorDesc> SDLVideoPlayer::openStreamComponent(AVMediaType type, u
   }else {
     codec = avcodec_find_decoder(codecCtx->codec_id);
     if (!codec) {
-      return ErrorDesc::from(ExceptionType::FFmpegCodecSetFailed, std::string("Can't find decoder: ") + avcodec_get_name(codecCtx->codec_id));
+      return ErrorDesc::from(ExceptionType::FFmpegSetFailed, std::string("Can't find decoder: ") + avcodec_get_name(codecCtx->codec_id));
     }
   }
   // 这里说明找到了解码器, 设置lastStreamInd
@@ -144,7 +144,7 @@ std::optional<ErrorDesc> SDLVideoPlayer::openStreamComponent(AVMediaType type, u
   ret = avcodec_open2(codecCtx, codec, &opts);
   std::unique_ptr<AVDictionary, AVDictionaryDeleter> optsPtr(opts);
   if (ret < 0) {
-    return ErrorDesc::from(ExceptionType::FFmpegCodecSetFailed, std::string("Can't open codec: ") + avcodec_get_name(codecCtx->codec_id));
+    return ErrorDesc::from(ExceptionType::FFmpegSetFailed, std::string("Can't open codec: ") + avcodec_get_name(codecCtx->codec_id));
   }
   // 检查设置的opts是否都被使用了
   std::vector<AVDictionaryEntry*> optlist = FFUtil::getAllEntries(opts);
@@ -159,20 +159,18 @@ std::optional<ErrorDesc> SDLVideoPlayer::openStreamComponent(AVMediaType type, u
 
   // 开始分不同类型
   switch (type) {
-    case AVMEDIA_TYPE_VIDEO:
+    case AVMEDIA_TYPE_AUDIO:
     {
       AudioParams& filterParams = mediaFilterInfo.audioFilterParamsSrc;
       AVFilterContext* buffersinkCtx = nullptr;
-      filterParams.freq = codecCtx->sample_rate;
-      ret = av_channel_layout_copy(&filterParams.channelLayout, &codecCtx->ch_layout);
-      if (ret < 0) {
-        return ErrorDesc::from(ExceptionType::FFmpegCodecSetFailed, "Can't copy channel layout");
-      }
-      auto err = mediaFilterInfo.configAudioFilter(settings.swrOpts, settings.videoFilterOpts, settings.filterThreadsNum, false);
+      //TODO: 这一步的set大概率不会失败，，但其中对于ch_layout的copy也可能会失败，之后正在回头看这一步吧
+      mediaFilterInfo.setAudFilterParamsSrc(codecCtx->sample_rate, &codecCtx->ch_layout, codecCtx->sample_fmt);
+      // 第一次调用
+      auto err = mediaFilterInfo.configAudioFilter(settings.swrOpts, settings.audioFilterGraphStr, settings.filterThreadsNum, false);
       if (err) return err; // 如果配置失败，直接返回错误信息
     }
       break;
-    case AVMEDIA_TYPE_AUDIO:
+    case AVMEDIA_TYPE_VIDEO:
       break;
     case AVMEDIA_TYPE_SUBTITLE:
       break;
@@ -258,6 +256,9 @@ void SDLVideoPlayer::read() {
   // 开始打开各个流
   if (videoInfo.streamIndex[AVMEDIA_TYPE_VIDEO] >= 0) {
     auto err = openStreamComponent(AVMEDIA_TYPE_VIDEO, videoInfo.streamIndex[AVMEDIA_TYPE_VIDEO]);
+  }
+  if (videoInfo.streamIndex[AVMEDIA_TYPE_AUDIO] >= 0) {
+    auto err = openStreamComponent(AVMEDIA_TYPE_AUDIO, videoInfo.streamIndex[AVMEDIA_TYPE_AUDIO]);
   }
   av_packet_free(&pkt);
 }
