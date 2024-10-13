@@ -5,6 +5,14 @@
 #ifndef PLAY_STATE_H
 #define PLAY_STATE_H
 #include <cstdint>
+#ifdef __cplusplus
+extern "C" {
+#include <SDL_audio.h>
+}
+#else
+#include <SDL_audio.h>
+#endif
+#include <bits/algorithmfwd.h>
 
 #include "const/play_sync_type.h"
 #include "util/sync/clock.h"
@@ -45,13 +53,22 @@ private:
 
   uint32_t defaultPicWidth;
   uint32_t defaultPicHeight;
+
+  // private func
+  inline void setSDLVolumeUsingPercent(uint8_t vol);
 public:
+  static constexpr uint8_t sdlMinVolume = 0;
+  static constexpr uint8_t sdlMaxVolume = 100;
   SDLPlayState();
   static int getAborted(void* state);
 };
 
 inline int SDLPlayState::getAborted(void* state) {
   return static_cast<SDLPlayState*>(state)->abortReq;
+}
+
+inline void SDLPlayState::setSDLVolumeUsingPercent(uint8_t vol) {
+  volume = std::clamp(static_cast<uint8_t>(vol / 100.0 * SDL_MIX_MAXVOLUME), static_cast<uint8_t>(0), static_cast<uint8_t>(SDL_MIX_MAXVOLUME));
 }
 
 

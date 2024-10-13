@@ -157,18 +157,22 @@ std::optional<ErrorDesc> SDLVideoPlayer::openStreamComponent(AVMediaType type, u
   playState.eof = false;
   st->discard = AVDISCARD_DEFAULT; // 默认情况下，仅丢弃useless packets(like 0 size packets in avi)
 
+  uint32_t sampleRate;
+  AVChannelLayout chLayout;
+  std::optional<ErrorDesc> optErr = std::nullopt;
   // 开始分不同类型
   switch (type) {
     case AVMEDIA_TYPE_AUDIO:
-    {
-      AudioParams& filterParams = mediaFilterInfo.audioFilterParamsSrc;
-      AVFilterContext* buffersinkCtx = nullptr;
       //TODO: 这一步的set大概率不会失败，，但其中对于ch_layout的copy也可能会失败，之后正在回头看这一步吧
       mediaFilterInfo.setAudFilterParamsSrc(codecCtx->sample_rate, &codecCtx->ch_layout, codecCtx->sample_fmt);
       // 第一次调用
-      auto err = mediaFilterInfo.configAudioFilter(settings.swrOpts, settings.audioFilterGraphStr, settings.filterThreadsNum, false);
-      if (err) return err; // 如果配置失败，直接返回错误信息
-    }
+      optErr = mediaFilterInfo.configAudioFilter(settings.swrOpts, settings.audioFilterGraphStr, settings.filterThreadsNum, false);
+      if (optErr) return optErr; // 如果配置失败，直接返回错误信息，之所以可以没有顾虑地释放，因为一些资源被智能指针接管了
+      sampleRate = mediaFilterInfo.getFilterOutSampleRate();
+      if (!mediaFilterInfo.getFilterOutChLayout(&chLayout)) {
+        return ErrorDesc::from(ExceptionType::FFmpegSetFailed, "Can't get channel layout");
+      }
+
       break;
     case AVMEDIA_TYPE_VIDEO:
       break;

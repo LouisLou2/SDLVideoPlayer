@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 #include <format>
+#include <bits/algorithmfwd.h>
 
 #include "util/calc.h"
 #include "const/show_mode_enum.h"
@@ -36,9 +37,6 @@ extern "C"{
 #define DEF_WIN_WIDTH 640
 #define DEF_WIN_HEIGHT 480
 
-#define MAX_VOLUME 100
-#define MIN_VOLUME 0
-
 #define MAX_DECODER_THREADS 16
 #define MIN_DECODER_THREADS 1
 
@@ -49,6 +47,10 @@ extern "C"{
 
 class SDLVidPlayerSettings : public PlayerSetting{
   friend class SDLVideoPlayer;
+  friend class SDLDisplayer;
+  // static
+  static constexpr uint8_t maxVolume = 100;
+  static constexpr uint8_t minVolume = 0;
 
   std::string windowTitle;
   bool enableNetwork;
@@ -125,11 +127,11 @@ public:
     std::optional<uint8_t>decodeThreadsNum = std::nullopt,
     std::optional<uint8_t> filterThreadsNum = std::nullopt,
 
-    // TODO: 配置上使用map是偷懒的行为，要不就提取类进行静态的配置， 要不就必须对传入的参数进行检查， 这个之后再考虑吧
     std::string audioFilterGraphStr = "",
+    // TODO: 配置上使用map是偷懒的行为，要不就提取类进行静态的配置， 要不就必须对传入的参数进行检查， 这个之后再考虑吧
     std::map<std::string, std::string>&& swrOpts = {}
   );
-  // 拷贝构造函数, 目前是用不到的
+  // 拷贝构造函数
   SDLVidPlayerSettings(const SDLVidPlayerSettings& setting) = default;
   // 移动构造函数
   /*
@@ -139,6 +141,7 @@ public:
    */
   SDLVidPlayerSettings(SDLVidPlayerSettings&& setting) = default;
 
+  [[nodiscard]] std::optional<ErrorDesc> checkConflictsWithHardware() const;
   [[nodiscard]] AVDictionary* getFormatOpt() const;
   [[nodiscard]] std::vector<AVDictionary*> getCodecOpts(const AVFormatContext* fmtCtx);
   // TODO: 此函数拿到的信息太丰富了，后续尝试精简
@@ -209,13 +212,13 @@ SDLVidPlayerSettings::SDLVidPlayerSettings(
 {
   if (specifiedInputFormat) this->inputFormat = inputFormat.value(); // 如果没有输入格式，
   if (specifiedSeekType) this->seekType = seekType.value();
-  if (volumeWithin100 > MAX_VOLUME || volumeWithin100 < MIN_VOLUME) {
+  if (volumeWithin100 > maxVolume || volumeWithin100 < minVolume) {
     // 修正
-    this->volumeWithin100 = Calc::clip(volumeWithin100, MIN_VOLUME, MAX_VOLUME);
+    this->volumeWithin100 = std::clamp(volumeWithin100, minVolume, maxVolume);
     // 给出警告
     PlayerLogger::log(ErrorDesc::from(
       ExceptionType::AutoAdjust,
-      std::format("Volume should be in range [{}, {}], but got {}, so adjust to {}", MIN_VOLUME, MAX_VOLUME, volumeWithin100, this->volumeWithin100)
+      std::format("Volume should be in range [{}, {}], but got {}, so adjust to {}", minVolume, maxVolume, volumeWithin100, this->volumeWithin100)
       )
     );
   }
@@ -237,6 +240,7 @@ SDLVidPlayerSettings::SDLVidPlayerSettings(
       )
     );
   }
+  // 关于硬件的冲突检查，这里不做(在)，因为如果这里抛出异常，那么在构造函数中就会抛出异常，虽然仍然可以释放资源，但是对于VideoPlayer的构造来说，setting通常是在初始化列表，不太好try-catch
 }
 
 #endif //SDL_VIDEO_PLAYER_SETTING_H

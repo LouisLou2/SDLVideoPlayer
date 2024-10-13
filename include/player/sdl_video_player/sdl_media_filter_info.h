@@ -12,23 +12,25 @@
 #ifdef __cplusplus
 extern "C" {
 #include <libavfilter/avfilter.h>
+#include <libavfilter/buffersink.h>
 }
 #else
 #include <libavfilter/avfilter.h>
+#include <libavfilter/buffersink.h>
 #endif
 
 class SDLMediaFilterInfo {
   friend class SDLVideoPlayer;
-  AudioParams audioParamsSrc;
-  AudioParams audioParamsTarget;
-  AudioParams audioFilterParamsSrc;
+  AudioParams audParamsSrc;
+  AudioParams audParamsTarget;
+  AudioParams audFilterParamsSrc;
 
   AVFilterContext* audioFilterIn;
-  AVFilterContext* audioFilterOut;
-  AVFilterContext* videoFilterIn;
-  AVFilterContext* videoFilterOut;
+  AVFilterContext* audFilterOut;
+  AVFilterContext* vidFilterIn;
+  AVFilterContext* vidFilterOut;
 
-  AVFilterGraph* audioFilterGraph;
+  AVFilterGraph* audFilterGraph;
 
   // 构造函数私有，仅供友元类使用
   SDLMediaFilterInfo();
@@ -40,26 +42,32 @@ class SDLMediaFilterInfo {
     uint8_t filterThreadsNum,
     bool forceOutputFormat = false
   );
-
   std::optional<ErrorDesc> configAudioFilterGraph(
     const std::string &audioFilterGraphStr,
     AVFilterContext *filterIn,
     AVFilterContext *filterOut
   );
-
+  uint32_t getFilterOutSampleRate() const;
+  bool getFilterOutChLayout(AVChannelLayout* targetLayout) const;
 };
 
 inline SDLMediaFilterInfo::SDLMediaFilterInfo():
-  audioFilterGraph(nullptr),
+  audFilterGraph(nullptr),
   audioFilterIn(nullptr),
-  audioFilterOut(nullptr),
-  videoFilterIn(nullptr),
-  videoFilterOut(nullptr){}
+  audFilterOut(nullptr),
+  vidFilterIn(nullptr),
+  vidFilterOut(nullptr){}
 
 inline void SDLMediaFilterInfo::setAudFilterParamsSrc(uint32_t freq, const AVChannelLayout* ch_layout, AVSampleFormat fmt) {
-    audioFilterParamsSrc.setFreq(freq);
-    audioFilterParamsSrc.copySetChLayout(ch_layout);
-    audioFilterParamsSrc.setFmt(fmt);
+    audFilterParamsSrc.setFreq(freq);
+    audFilterParamsSrc.copySetChLayout(ch_layout);
+    audFilterParamsSrc.setFmt(fmt);
+}
+inline uint32_t SDLMediaFilterInfo::getFilterOutSampleRate() const {
+  return av_buffersink_get_sample_rate(audFilterOut);
+}
+inline bool SDLMediaFilterInfo::getFilterOutChLayout(AVChannelLayout* targetLayout) const {
+  return av_buffersink_get_ch_layout(audFilterOut, targetLayout) < 0;
 }
 
 #endif //SDL_MEDIA_FILTER_INFO_H

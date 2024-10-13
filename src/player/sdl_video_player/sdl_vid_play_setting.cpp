@@ -1,7 +1,22 @@
 //
 // Created by leo on 24-10-4.
 //
+#include "player/play_envs.h"
 #include "player/sdl_video_player/sdl_vid_player_setting.h"
+
+std::optional<ErrorDesc> SDLVidPlayerSettings::checkConflictsWithHardware() const {
+  // eusure the hardware info is set,if not, set it,on the other hand, if it is set, do nothing
+  assert(PlayEnvs::isScreenInfoSet());
+  std::optional<ErrorDesc> optErr = std::nullopt;
+  // 检查屏幕
+  if (useDisplayIndex >= PlayEnvs::getScreenNum()) {
+    optErr = ErrorDesc::from(
+      ExceptionType::InvalidArgument,
+      "Invalid screen index: " + std::to_string(useDisplayIndex)
+    );
+  }
+  return optErr;
+}
 
 AVDictionary* SDLVidPlayerSettings::getFormatOpt() const{
   // TODO: unimplmented

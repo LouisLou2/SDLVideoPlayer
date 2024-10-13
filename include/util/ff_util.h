@@ -34,11 +34,16 @@ public:
   static inline bool hasDiscontinuousTS(const AVInputFormat* iformat);
   static inline const AVInputFormat* getInputFormat(InputFormatEnum ifmtEnum);
   static inline SeekType decideSeekType(const AVInputFormat* iformat);
-  // 返回的vector中的元素是指向AVDictionaryEntry的指针，依附于动态分配的内存，注意使用它的时候不要提前释放内存
+  // 返回的vector中的元素是指向AVDictionaryEntry的指针，依附于动态分配的内存，注意使用它的时候不要提前释放内存,所以也不需要手动释放内存，要从原来的AVDictionary中释放
   static std::vector<AVDictionaryEntry*> getAllEntries(const AVDictionary* dict);
   static std::string stringifyAVDictionary(const std::vector<AVDictionaryEntry*>& entries);
   static std::string getAllPairString(const AVDictionary* dict, const char* split = ":");
   static std::string getAllPairString(const std::map<std::string,std::string>& dict, const char* split = ":");
+  /*
+   * 此函数求解给定sampleRate,和每秒最大调用次数，并且每次call的最小数据量，求解每次调用的数据量, 在实现中还限制了结果必须是2的幂次方
+   */
+  static uint32_t getSamplesPerSec(uint32_t minSize,uint32_t sampleRate, uint16_t maxCallPerSec);
+  static void relayoutChannel(AVChannelLayout* ch_layout, uint8_t num);
 };
 
 inline bool FFUtil::hasDiscontinuousTS(const AVInputFormat* iformat) {
@@ -57,4 +62,11 @@ inline SeekType FFUtil::decideSeekType(const AVInputFormat* iformat) {
           strcmp("ogg", iformat->name) != 0    // 该格式不是ogg
          ? SeekType::ByByte : SeekType::ByTime;
 }
+
+inline void FFUtil::relayoutChannel(AVChannelLayout* ch_layout, uint8_t num) {
+  assert(num > 0);
+  av_channel_layout_uninit(ch_layout);
+  av_channel_layout_default(ch_layout, num);
+}
+
 #endif //FF_OPT_UTIL_H

@@ -6,24 +6,16 @@
 #define VIDEOPLAYER_H
 
 #include "sdl_cache_collection.h"
+#include "sdl_displayer.h"
 #include "sdl_media_filter_info.h"
 #include "player/sdl_video_player/sdl_thread_coordinator.h"
-#include "util/mem/sdl_mem.h"
 #include "player/video_player.h"
 #include "player/sdl_video_player/sdl_play_state.h"
 #include "player/sdl_video_player/sdl_video_basic_info.h"
-#include "struct/frame_queue.h"
 #include "player/sdl_video_player/sdl_vid_player_setting.h"
 
-#ifdef __cplusplus
-extern "C" {
-#include <SDL2/SDL.h>
-}
-#else
-#include <SDL2/SDL.h>
-#endif
-
-#define THE_ONLY_ALLOWED_SAMPLE_FMT AV_SAMPLE_FMT_S16
+#define THE_ONLY_ALLOWED_SAMPLE_FMT_FF AV_SAMPLE_FMT_S16
+#define THE_ONLY_ALLOWED_SAMPLE_FMT_SDL AUDIO_S16SYS
 
 class SDLVideoPlayer final : public VideoPlayer{
 
@@ -35,25 +27,20 @@ class SDLVideoPlayer final : public VideoPlayer{
   SDLThreadCoordinator coordinator;
   SDLMediaFilterInfo mediaFilterInfo;
   SDLPlayerCacheCollection cacheCollection;
-
-  std::unique_ptr<SDL_Window, SDL_WindowDeleter> window;
-  std::unique_ptr<SDL_Renderer, SDL_RendererDeleter> renderer;
-  SDL_RendererInfo rendererInfo;
+  SDLDisplayer displayer;
 
   void openStream();
   void initAv();
-  void initSDL();
-  void initHardWareAfterSDL();
   void read();
   void determineStream();
   // null_opt
   std::optional<ErrorDesc> openStreamComponent(AVMediaType type, uint16_t streamIndex);
-  std::optional<ErrorDesc> configAudioFilter();
 public:
   explicit SDLVideoPlayer(
     const std::string& video_path,
     const std::optional<SDLVidPlayerSettings>& setting = std::nullopt
   );
+  // 可能会抛出异常
   void play() override;
 };
 

@@ -12,9 +12,9 @@
 #include "util/url_util.h"
 #include "util/calc.h"
 #include "util/ff_util.h"
-#include "util/logger/player_logger.h"
 #include "player/sdl_video_player/sdl_video_player.h"
-#include "util/mem/ff_mem.h"
+
+#include "player/play_envs.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,9 +26,8 @@ extern "C" {
 #include <libavformat/avformat.h>
 #endif
 
-#define MIN_STREAM_SIZE 1024
-#define MAX_FRAME_DURATION_FOR_DISCON 10.0
-#define MAX_FRAME_DURATION_FOR_CON 3600.0
+// #define MAX_FRAME_DURATION_FOR_DISCON 10.0
+// #define MAX_FRAME_DURATION_FOR_CON 3600.0
 
 namespace fs = std::filesystem;
 
@@ -49,7 +48,7 @@ void SDLVideoPlayer::openStream() {
   // 三个时钟的默认构造函数已经将所有成员变量初始化了，正式我们想要的，这里就不再修改了
   // playState.audioClockSerial 默认就是-1
   // 虽说settings.volumeWithin100是0-100，但是考虑到浮点运算的精度问题，这里还必须严格要求在0-SDL_MIX_MAXVOLUME之间
-  playState.volume = Calc::clip(settings.volumeWithin100 / 100.0 * SDL_MIX_MAXVOLUME, 0, SDL_MIX_MAXVOLUME);
+  playState.setSDLVolumeUsingPercent(settings.volumeWithin100);
   // playState默认构造函数已经将syncType设置为AudioMaster了
   // playState默认构造函数已经将mute和paused都设置为false了
 
@@ -59,30 +58,15 @@ void SDLVideoPlayer::openStream() {
 }
 
 void SDLVideoPlayer::play() {
-  // 检查文件是否为本地文件
-  videoInfo.protocol = UrlUtil::getProtocolType(videoInfo.originalUrl);
-  // 如果是本地文件，检查文件是否存在
-  if (videoInfo.protocol == StreamProtocol::File) {
-    // 检查文件是否存在
-    if (!fs::is_regular_file(videoInfo.originalUrl)) {
-      throw ErrorDesc::from(ExceptionType::ResourceNotFound, std::string("Can't find an regular file named: ") + videoInfo.originalUrl);
-    }
-    // 检查文件是否过小
-    if (fs::file_size(videoInfo.originalUrl) < MIN_STREAM_SIZE) {
-      throw ErrorDesc::from(ExceptionType::ResourceNotFound, std::string("File is too small: ") + videoInfo.originalUrl);
-    }
-    // 打开文件检查可读性
-    std::ifstream videoInFile(videoInfo.originalUrl, std::ios::in | std::ios::binary);
-    if (!videoInFile.is_open()) {
-      throw ErrorDesc::from(ExceptionType::FileUnreadable, std::string("Can't open file: ") + videoInfo.originalUrl);
-    }else {
-      // 关闭文件
-      videoInFile.close();
-    }
-  }
+  videoInfo.checkFileAndSetBasic();
+  // 明确显示器信息，这个函数可能会抛出异常,它会在第一次调用时初始化
+  PlayEnvs::ensureScreenInfoSet();
+  // 检查设置是否与硬件兼容
+  if (std::optional<ErrorDesc> optErr = settings.checkConflictsWithHardware()) throw optErr.value();
   // 等到play函数调用时才初始化
   initAv();
-  initSDL();
+  // 显示器(使用SDL的)初始化
+  if (std::optional<ErrorDesc> optErr = displayer.initDisplayer(settings)) throw optErr.value();
   openStream();
   coordinator.readThread.join();
 }
