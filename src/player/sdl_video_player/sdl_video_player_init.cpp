@@ -27,11 +27,7 @@ settings(
       true,
       false,
       false,
-      false,
-      ShowModeEnum::None,
-      false,
-      DEF_WIN_WIDTH,
-      DEF_WIN_HEIGHT
+      false
       )
     )
 ),

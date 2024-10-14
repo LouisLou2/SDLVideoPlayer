@@ -23,7 +23,7 @@ AVDictionary* SDLVidPlayerSettings::getFormatOpt() const{
   return nullptr;
 }
 
-std::vector<AVDictionary*> SDLVidPlayerSettings::getCodecOpts(const AVFormatContext* fmtCtx) {
+std::vector<AVDictionary*> SDLVidPlayerSettings::getCodecOpts(const AVFormatContext* fmtCtx) const {
   uint16_t stNum = fmtCtx->nb_streams;
   // TODO：具体就是根据settings的设置,来认领每个stream的AVDictionary,这里就之后再写那些复杂的option, 先把所有的dict初始化为nullptr, 直接传出去吧
   return std::vector<AVDictionary*> (stNum,nullptr);

@@ -14,10 +14,7 @@
 #include "player/sdl_video_player/sdl_video_basic_info.h"
 #include "player/sdl_video_player/sdl_vid_player_setting.h"
 
-#define THE_ONLY_ALLOWED_SAMPLE_FMT_FF AV_SAMPLE_FMT_S16
-#define THE_ONLY_ALLOWED_SAMPLE_FMT_SDL AUDIO_S16SYS
-
-class SDLVideoPlayer final : public VideoPlayer{
+class SDLVideoPlayer final : public VideoPlayer {
 
   static constexpr std::string programName = "SDLVideoPlayer";
 

@@ -12,8 +12,6 @@
 #include <vector>
 #include <format>
 #include <bits/algorithmfwd.h>
-
-#include "util/calc.h"
 #include "const/show_mode_enum.h"
 #ifdef __cplusplus
 extern "C"{
@@ -21,12 +19,14 @@ extern "C"{
 #include <libavformat/avformat.h>
 #include <libavutil/avutil.h>
 #include <libavcodec/avcodec.h>
+#include <SDL2/SDL_audio.h>
 }
 #else
 #include <libavutil/dict.h>
 #include <libavformat/avformat.h>
 #include <libavutil/avutil.h>
 #include <libavcodec/avcodec.h>
+#include <SDL2/SDL_audio.h>
 #endif
 
 #include "util/logger/player_logger.h"
@@ -34,24 +34,23 @@ extern "C"{
 #include "const/input_format_enum.h"
 #include "const/seek_type.h"
 
-#define DEF_WIN_WIDTH 640
-#define DEF_WIN_HEIGHT 480
-
-#define MAX_DECODER_THREADS 16
-#define MIN_DECODER_THREADS 1
-
-#define MAX_FILTER_THREADS 16
-#define MIN_FILTER_THREADS 1
-
-#define THREADS_NUM_AUTO 0
-
 class SDLVidPlayerSettings : public PlayerSetting{
   friend class SDLVideoPlayer;
   friend class SDLDisplayer;
+public:
+  static constexpr AVSampleFormat theOnlyAllowedSRFmt_FF = AV_SAMPLE_FMT_S16;
+  static constexpr SDL_AudioFormat theOnlyAllowedSRFmt_SDL = AUDIO_S16SYS;
+  static constexpr uint32_t defWinWidth = 640;
+  static constexpr uint32_t defWinHeight = 480;
+  static constexpr uint8_t maxDecoderThreads = 16;
+  static constexpr uint8_t minDecoderThreads = 1;
+  static constexpr uint8_t maxFilterThreads = 16;
+  static constexpr uint8_t minFilterThreads = 1;
+  static constexpr uint8_t threadsNumAuto = 0;
+private:
   // static
   static constexpr uint8_t maxVolume = 100;
   static constexpr uint8_t minVolume = 0;
-
   std::string windowTitle;
   bool enableNetwork;
   bool disableAud;
@@ -101,12 +100,12 @@ public:
     bool disableAud = false,
     bool disableVideo = false,
     bool disableSub = false,
-    ShowModeEnum showMode = ShowModeEnum::None,
+    ShowModeEnum showMode = ShowModeEnum::Video, // 默认显示视频,即全部显示
     uint16_t useDisplayIndex = 0,
     bool alwaysOnTop = false,
     bool borderless = false,
-    uint32_t windowWidth = DEF_WIN_WIDTH,
-    uint32_t windowHeight = DEF_WIN_HEIGHT,
+    uint32_t windowWidth =defWinWidth,
+    uint32_t windowHeight = defWinHeight,
     std::optional<InputFormatEnum> inputFormat = std::nullopt,
     uint8_t volume = 40,
     bool scanAllPmtsSet = true,
@@ -143,7 +142,7 @@ public:
 
   [[nodiscard]] std::optional<ErrorDesc> checkConflictsWithHardware() const;
   [[nodiscard]] AVDictionary* getFormatOpt() const;
-  [[nodiscard]] std::vector<AVDictionary*> getCodecOpts(const AVFormatContext* fmtCtx);
+  [[nodiscard]] std::vector<AVDictionary*> getCodecOpts(const AVFormatContext* fmtCtx) const;
   // TODO: 此函数拿到的信息太丰富了，后续尝试精简
   [[nodiscard]] AVDictionary* filterOpts(const AVCodec* codec, const AVCodecContext* codecCtx, const AVFormatContext* fmt, const AVStream* st);
 };
@@ -224,19 +223,19 @@ SDLVidPlayerSettings::SDLVidPlayerSettings(
   }
   if (decodeThreadsNum.has_value() && (decodeThreadsNum == 0 || decodeThreadsNum>16) ) {
     // 给出警告
-    this->decoderThreadsNum = THREADS_NUM_AUTO;
+    this->decoderThreadsNum = threadsNumAuto;
     PlayerLogger::log(ErrorDesc::from(
       ExceptionType::AutoAdjust,
-      std::format("decode threads num should be in range [{}, {}], but got {}, so adjust to auto", MIN_DECODER_THREADS, MAX_DECODER_THREADS, decodeThreadsNum.value())
+      std::format("decode threads num should be in range [{}, {}], but got {}, so adjust to auto", minDecoderThreads, maxDecoderThreads, decodeThreadsNum.value())
       )
     );
   }
   if (filterThreadsNum.has_value() && (filterThreadsNum == 0 || filterThreadsNum>16) ) {
     // 给出警告
-    this->filterThreadsNum = THREADS_NUM_AUTO;
+    this->filterThreadsNum = threadsNumAuto;
     PlayerLogger::log(ErrorDesc::from(
       ExceptionType::AutoAdjust,
-      std::format("filter threads num should be in range [{}, {}], but got {}, so adjust to auto", MIN_FILTER_THREADS, MAX_FILTER_THREADS, filterThreadsNum.value())
+      std::format("filter threads num should be in range [{}, {}], but got {}, so adjust to auto", minFilterThreads, maxFilterThreads, filterThreadsNum.value())
       )
     );
   }

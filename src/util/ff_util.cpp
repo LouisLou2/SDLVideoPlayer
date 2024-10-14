@@ -94,18 +94,21 @@ std::string FFUtil::getAllPairString(const std::map<std::string, std::string>& d
   return res;
 }
 
-uint32_t FFUtil::getSamplesPerSec(uint32_t minSize, uint32_t sampleRate, uint16_t maxCallPerSec) {
-  double logVal = std::log2(static_cast<double>(sampleRate) / maxCallPerSec); // 这个logVal应该就是不超过uint8_t的最大值吧，2^255是一个很大的数
-  // 若logVal接近一个整数，就不需要再加一了
-  double roundVal = std::round(logVal);
-  // 对数函数增长越来越慢，这个差距如果设置过大，会导致sampleRate / maxCallPerSec 差距很大情况下，但仍然判定成一个值
-  // 但是对于每秒读的样本，也就是千的级别，增长还算快的，如果设置太小，会出现sampleRate / maxCallPerSec增加不大，但是logVal增加很快，导致roundVal += 1;
-  if (std::abs(logVal - roundVal) > 0.3 && roundVal < logVal) {
-    // 这里的roundVal的意义不再是“四舍五入的值”，而是logVal跟整数差距大，所以logVal向上取整的值
-    roundVal += 1;
-  }
-  assert(roundVal <= std::numeric_limits<uint8_t>::max());
-  return std::max(minSize,static_cast<uint32_t>(1 << static_cast<uint8_t>(roundVal)));
+uint32_t FFUtil::getSamplesPerSec(
+  uint32_t sampleRate,
+  uint16_t wantedCallPerSec,
+  uint16_t maxCallsPerSec,
+  uint32_t minSize) {
+  const double preciseVal = static_cast<double>(sampleRate) / wantedCallPerSec;
+  const double logVal = std::log2(preciseVal); // 这个logVal应该就是不超过uint8_t的最大值吧，2^255是一个很大的数
+  const uint32_t lessVal = 2 << static_cast<uint8_t>(std::floor(logVal));
+  const uint32_t moreVal = 2 << static_cast<uint8_t>(std::ceil(logVal));
+  // 判断那个更加与sampleRate / wantedCallPerSec 接近
+  const uint32_t res = (preciseVal - lessVal < moreVal - preciseVal && lessVal * maxCallsPerSec >= sampleRate)
+                         ? lessVal
+                         : moreVal;
+  // 最后判断是否小于minSize
+  return std::max(minSize, res);
 }
 
 

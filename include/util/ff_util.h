@@ -40,9 +40,12 @@ public:
   static std::string getAllPairString(const AVDictionary* dict, const char* split = ":");
   static std::string getAllPairString(const std::map<std::string,std::string>& dict, const char* split = ":");
   /*
-   * 此函数求解给定sampleRate,和每秒最大调用次数，并且每次call的最小数据量，求解每次调用的数据量, 在实现中还限制了结果必须是2的幂次方
+   * 最高优先级的限制：minSize，即每次调用的最小数据量
+   * 次高优先级的限制：maxCallPerSec，即每秒最高调用次数
+   * 三级优先级的限制：wantedCallPerSec，即每秒期望调用次数，最终不一定能达到
+   * 此函数求解给定sampleRate, 在实现中还限制了结果必须是2的幂次方
    */
-  static uint32_t getSamplesPerSec(uint32_t minSize,uint32_t sampleRate, uint16_t maxCallPerSec);
+  static uint32_t getSamplesPerSec(uint32_t sampleRate, uint16_t wantedCallPerSec, uint16_t maxCallsPerSec, uint32_t minSize);
   static void relayoutChannel(AVChannelLayout* ch_layout, uint8_t num);
 };
 

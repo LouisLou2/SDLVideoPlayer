@@ -30,7 +30,7 @@ std::optional<ErrorDesc> SDLMediaFilterInfo::configAudioFilter(
   int ret = 0;
   AVBPrint bp;// 为了配合ffmpeg的接口
   std::array<AVSampleFormat,2> sampleFmtPair = {
-    THE_ONLY_ALLOWED_SAMPLE_FMT_FF, AV_SAMPLE_FMT_NONE
+    SDLVidPlayerSettings::theOnlyAllowedSRFmt_FF, AV_SAMPLE_FMT_NONE
   };
   std::array<int,2> sampleRatePair = {0, -1};
   AVFilterContext* filterAudioSrc = nullptr;

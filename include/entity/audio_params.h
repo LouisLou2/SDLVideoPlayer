@@ -4,7 +4,9 @@
 
 #ifndef AUDIO_PARAMS_H
 #define AUDIO_PARAMS_H
+#include <cassert>
 #include <cstdint>
+#include <limits>
 #ifdef __cplusplus
 extern "C" {
 #include <libavutil/channel_layout.h>
@@ -25,29 +27,19 @@ class AudioParams {
   uint32_t frameSize;
   uint32_t bytePerSec;
 public:
-  // inline AudioParams(
-  //   uint32_t freq,
-  //   AVChannelLayout channelLayout,
-  //   AVSampleFormat fmt,
-  //   uint32_t frameSize,
-  //   uint32_t bytePerSec);
   void setFreq(uint32_t freq) {this->freq = freq;}
   void  copySetChLayout(const AVChannelLayout* ch_layout) {
     av_channel_layout_copy(&this->ch_layout, ch_layout);
   }
   void setFmt(AVSampleFormat fmt) {this->fmt = fmt;}
+  void setSizes(uint32_t frameSize, uint32_t framePerSec) {
+    // bytePerSec应该不会超过2^32
+    assert(frameSize > 0 && framePerSec > 0);
+    this->frameSize = frameSize;
+    uint64_t bytePerSec = frameSize * framePerSec;
+    assert(bytePerSec <= std::numeric_limits<uint32_t>::max());
+    this->bytePerSec = static_cast<uint32_t>(bytePerSec);
+  }
 };
-
-// inline AudioParams::AudioParams(
-//   uint32_t freq,
-//   AVChannelLayout channelLayout,
-//   AVSampleFormat fmt,
-//   uint32_t frameSize,
-//   uint32_t bytePerSec):
-// freq(freq),
-// channelLayout(channelLayout),
-// fmt(fmt),
-// frameSize(frameSize),
-// bytePerSec(bytePerSec) {}
 
 #endif //AUDIO_PARAMS_H
