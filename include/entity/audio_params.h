@@ -19,8 +19,8 @@ extern "C" {
 
 
 class AudioParams {
-  friend class SDLMediaFilterInfo;
-  friend class SDLVideoPlayer;
+  // friend class SDLMediaFilterInfo;
+  // friend class SDLVideoPlayer;
   uint32_t freq;
   AVChannelLayout ch_layout;
   AVSampleFormat fmt;
@@ -28,18 +28,20 @@ class AudioParams {
   uint32_t bytePerSec;
 public:
   void setFreq(uint32_t freq) {this->freq = freq;}
+
   void  copySetChLayout(const AVChannelLayout* ch_layout) {
     av_channel_layout_copy(&this->ch_layout, ch_layout);
   }
+
   void setFmt(AVSampleFormat fmt) {this->fmt = fmt;}
-  void setSizes(uint32_t frameSize, uint32_t framePerSec) {
-    // bytePerSec应该不会超过2^32
-    assert(frameSize > 0 && framePerSec > 0);
-    this->frameSize = frameSize;
-    uint64_t bytePerSec = frameSize * framePerSec;
-    assert(bytePerSec <= std::numeric_limits<uint32_t>::max());
-    this->bytePerSec = static_cast<uint32_t>(bytePerSec);
-  }
+
+  void setSizes(uint32_t frameSize, uint32_t framePerSec);
+  // getters: all inline
+  [[nodiscard]] uint32_t getFreq() const {return freq;}
+  [[nodiscard]] const AVChannelLayout* getChLayoutPtr() const {return &ch_layout;}
+  [[nodiscard]] AVSampleFormat getFmt() const {return fmt;}
+  [[nodiscard]] uint32_t getFrameSize() const {return frameSize;}
+  [[nodiscard]] uint32_t getBytePerSec() const {return bytePerSec;}
 };
 
 #endif //AUDIO_PARAMS_H

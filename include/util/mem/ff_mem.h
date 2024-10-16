@@ -26,6 +26,13 @@ struct AVDictionaryDeleter {
   }
 };
 
+// 在栈区的AVChannelLayout的deleter，所以其本身不需要释放，但是其中的数据需要释放
+struct AVChannelLayoutInStackDeleter {
+  void operator()(AVChannelLayout* ch_layout) const {
+    av_channel_layout_uninit(ch_layout);
+  }
+};
+
 // deleter for AVFormatContext
 struct AVFormatContextDeleter {
   void operator()(AVFormatContext* fmtCtx) const {

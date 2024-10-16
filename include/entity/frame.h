@@ -26,13 +26,16 @@ struct Frame {
   AVRational sar{};// 宽高比
   bool uploaded = false;
   bool flip = false;
-
-  Frame() = default;
+  // static:
+  static Frame getCopy(const Frame& frame);
+  // non-static
+  explicit Frame() = default;
   //TODO： 这里subt的构造采用的使用Subtitle的默认拷贝构造，之后看看是不是可以修改更加合理，现在先不改了
-  Frame(AVFrame* frame, const Subtitle& subt, uint32_t serial, double pts, double duration, uint64_t pos, uint32_t width, uint32_t height, int32_t fmt, AVRational sar, bool uploaded, bool flip);
-  // 使用复制构造函数一定要慎重再慎重
-  Frame(const Frame&) = default;
-  Frame &operator=(const Frame&) = default;
+  explicit Frame(AVFrame* frame, const Subtitle& subt, uint32_t serial, double pts, double duration, uint64_t pos, uint32_t width, uint32_t height, int32_t fmt, AVRational sar, bool uploaded, bool flip);
+  // 使用复制构造函数一定要慎重再慎重,这里将复制构造函数删除，但是定义一个具有名字的函数，为了防止编码的时候无意识的复制
+  Frame(const Frame&) = delete;
+  Frame &operator=(const Frame&) = delete;
+  void shallowCopy(const Frame& fr);
   // move constructor
   Frame(Frame&& rhs) noexcept;
   Frame& operator=(Frame&& rhs) noexcept;

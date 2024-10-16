@@ -16,6 +16,7 @@ extern "C" {
 #include<libavutil/time.h>
 #endif
 
+//
 struct Clock {
   double pts;
   double ptsDrift;
@@ -24,15 +25,18 @@ struct Clock {
   bool paused;
   uint32_t serial;
   // uint32_t* queueSerial;
-  inline Clock();
+
+  // 这个构造函数是默认构造，它建立的对象目前是不能使用的
+  inline explicit Clock(double speed);
 };
 
-inline Clock::Clock():
-pts(std::numeric_limits<double>::quiet_NaN()),
-ptsDrift(pts), // pts和ptsDrift的初始值都是NaN
-lastUpdated(av_gettime_relative() / 1000000.0), //转换为秒为单位
-speed(1.0),
-paused(false),
-serial(-1) {}
+// aware: 任何有nan参与的运算都会返回nan
+inline Clock::Clock(double speed):
+  pts(std::numeric_limits<double>::quiet_NaN()),
+  ptsDrift(pts), // pts和ptsDrift的初始值都是NaN
+  lastUpdated(pts), //转换为秒为单位
+  speed(speed),
+  paused(false),
+  serial(-1) {}
 
 #endif //CLOCK_H

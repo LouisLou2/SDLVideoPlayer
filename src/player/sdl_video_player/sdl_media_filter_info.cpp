@@ -24,7 +24,7 @@ std::optional<ErrorDesc> SDLMediaFilterInfo::configAudioFilter(
   const std::map<std::string,std::string>& swrOpts,
   const std::string& audioFilterGraphStr,
   uint8_t filterThreadsNum,
-  bool forceOutputFormat
+  std::optional<const AudioParams*> forcedOutputParams
 ) {
   std::optional<ErrorDesc> optErr = std::nullopt;
   int ret = 0;
@@ -52,14 +52,14 @@ std::optional<ErrorDesc> SDLMediaFilterInfo::configAudioFilter(
 
   // 在使用bp之前，要初始化
   av_bprint_init(&bp, 0, AV_BPRINT_SIZE_AUTOMATIC);
-  av_channel_layout_describe_bprint(&audFilterParamsSrc.ch_layout, &bp);
+  av_channel_layout_describe_bprint(audFilterParamsSrc.getChLayoutPtr(), &bp);
   // 准备创建滤镜的参数字符串
   filterArgsStr = std::format(
     "sample_rate={}:sample_fmt={}:time_base={}/{}:channel_layout={}",
-    audFilterParamsSrc.freq,
-    av_get_sample_fmt_name(audFilterParamsSrc.fmt),
+    audFilterParamsSrc.getFreq(),
+    av_get_sample_fmt_name(audFilterParamsSrc.getFmt()),
     1,
-    audFilterParamsSrc.freq,
+    audFilterParamsSrc.getFreq(),
     bp.str
   );
   // 创建滤镜src
@@ -112,8 +112,11 @@ std::optional<ErrorDesc> SDLMediaFilterInfo::configAudioFilter(
     goto end;
   }
   // 如果强制设置输出格式
-  if (forceOutputFormat) {
-    sampleRatePair.front() = audParamsTarget.freq;
+  if (forcedOutputParams) {
+    // 不可能optional里面有值但是值却是nullptr, 代码不允许有这样混淆视听的情况
+    const AudioParams* audForcedParams = *forcedOutputParams;
+    assert(audForcedParams);
+    sampleRatePair.front() = audForcedParams->getFreq();
     // 设置不能接受音频所有通道，而需要使用audioParamsTarget的通道
     if ((ret = av_opt_set_int(filterAudioSink, "all_channel_counts", 0, AV_OPT_SEARCH_CHILDREN)) < 0) {
       optErr = ErrorDesc::from(

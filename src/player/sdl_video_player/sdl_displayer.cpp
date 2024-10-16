@@ -32,8 +32,8 @@ AudioParams SDLDisplayer::copySDLAudioSpecToAudioParams(const SDL_AudioSpec& spe
 
 std::optional<ErrorDesc> SDLDisplayer::initDisplayer(const SDLVidPlayerSettings& settings) {
   uint32_t flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER;
-  if (settings.disableAud) flags &= ~SDL_INIT_AUDIO;
-  if (settings.disableVid) flags &= ~SDL_INIT_VIDEO;
+  if (!settings.presentForm.isEnableAud()) flags &= ~SDL_INIT_AUDIO;
+  if (!settings.presentForm.isEnableVid()) flags &= ~SDL_INIT_VIDEO;
   if (SDL_Init(flags)) {
     // 初始化失败
     return ErrorDesc::from(ExceptionType::SDLInitFailed, SDL_GetError());
@@ -42,7 +42,7 @@ std::optional<ErrorDesc> SDLDisplayer::initDisplayer(const SDLVidPlayerSettings&
   SDL_EventState(SDL_SYSWMEVENT, SDL_IGNORE);
   SDL_EventState(SDL_USEREVENT, SDL_IGNORE);
 
-  if (settings.disableVid) return std::nullopt;
+  if (!settings.presentForm.isEnableVid()) return std::nullopt;
 
   uint32_t sdlFlags = SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE;
   if (settings.alwaysOnTop) sdlFlags |= SDL_WINDOW_ALWAYS_ON_TOP;
@@ -92,7 +92,7 @@ std::optional<ErrorDesc> SDLDisplayer::initDisplayer(const SDLVidPlayerSettings&
   return std::nullopt;
 }
 
-AudioParams SDLDisplayer::configAudioDisplay(
+std::pair<AudioParams,uint32_t> SDLDisplayer::configAudioDisplay(
   SDL_AudioCallback callback,
   AVChannelLayout* wantedChLayOut,
   uint32_t wantedSR,
@@ -198,5 +198,13 @@ AudioParams SDLDisplayer::configAudioDisplay(
     }
   }
   // 记录下来,copySDLAudioSpecToAudioParams可能抛出异常，但是它如果抛出，也不是我们能处理得了
-  return copySDLAudioSpecToAudioParams(obtainedSpec, wantedChLayOut);
+  try {
+    AudioParams paras = copySDLAudioSpecToAudioParams(obtainedSpec, wantedChLayOut);
+    audioBufThreshold = obtainedSpec.size;
+    return std::make_pair(paras, audioBufThreshold);
+  }catch (ErrorDesc& e) {
+    // 释放设备
+    SDL_CloseAudioDevice(audioDeviceId);
+    throw;
+  }
 }

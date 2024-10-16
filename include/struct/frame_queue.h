@@ -2,28 +2,25 @@
 // Created by leo on 24-9-29.
 //
 #pragma once
-
-#define PIC_CAP_MAX 3
-#define SAMPLE_CAP_MAX 9
-#define SUB_CAP_MAX 16
-
+#include "const/struct_config.h"
 #include <array>
 #include <condition_variable>
 #include <mutex>
 #include <optional>
-
+#include "util/calc.h"
 #include "entity/frame.h"
 #ifdef __cplusplus
 extern "C"{
 #include <libavformat/avformat.h>
 }
 #else
+#include <libavformat/avformat.h>
 #endif
 
 
 // 这个队列基本上就是单生产者单消费者
 class FrameQueue {
-  static constexpr uint16_t CapMax = std::max(PIC_CAP_MAX, std::max(SAMPLE_CAP_MAX, SUB_CAP_MAX));
+  static constexpr uint16_t CapMax = Calc::max(PIC_CAP_MAX, SAMPLE_CAP_MAX, SUB_CAP_MAX);
   // 内部数据结构：ring buffer
   size_t capacity; // 队列中留一个空位，用于区分队列满和队列空
   size_t bufCap;
@@ -37,7 +34,6 @@ class FrameQueue {
 
   // 自定义选项
   bool keepLast;
-  Frame lastFrame;
 
 public:
   inline explicit FrameQueue();

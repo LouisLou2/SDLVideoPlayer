@@ -21,8 +21,7 @@ extern "C" {
 
 class SDLMediaFilterInfo {
   friend class SDLVideoPlayer;
-  AudioParams audParamsSrc;
-  AudioParams audParamsTarget;
+
   AudioParams audFilterParamsSrc;
 
   AVFilterContext* audioFilterIn;
@@ -40,7 +39,7 @@ class SDLMediaFilterInfo {
     const std::map<std::string,std::string>& swrOpts,
     const std::string& audioFilterGraphStr,
     uint8_t filterThreadsNum,
-    bool forceOutputFormat = false
+    std::optional<const AudioParams*> forcedOutputParams = std::nullopt
   );
   std::optional<ErrorDesc> configAudioFilterGraph(
     const std::string &audioFilterGraphStr,

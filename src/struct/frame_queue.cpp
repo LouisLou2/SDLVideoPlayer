@@ -37,7 +37,8 @@ Frame FrameQueue::blockPop() {
   cv.wait(lock, [this] { return !isEmpty();});
   // 如果是keepLast，那么需要复制一份
   if (keepLast) {
-    lastFrame = buf[head];
+    // 正好循环queue的最后一个位置不是内容，利用它存储lastFrame
+    buf[tail].shallowCopy(buf[head]);
     /*此处特别注意的是，pop出去的一个Frame，这里还会保存一个Frame，
      *他们的内部指针指向的是同一块内存，所以使用keepLast机制需要格外注意！！
      */
@@ -54,7 +55,8 @@ std::optional<Frame> FrameQueue::tryPop() {
   if (isEmpty()) return std::nullopt; // 为什么要再次检查？因为可能在等待锁的时候，队列已经空了
   // 如果是keepLast，那么需要复制一份
   if (keepLast) {
-    lastFrame = buf[head];
+    // 正好循环queue的最后一个位置不是内容，利用它存储lastFrame
+    buf[tail].shallowCopy(buf[head]);
     /*此处特别注意的是，pop出去的一个Frame，这里还会保存一个Frame，
      *他们的内部指针指向的是同一块内存，所以使用keepLast机制需要格外注意！！
      */
@@ -66,14 +68,19 @@ std::optional<Frame> FrameQueue::tryPop() {
 }
 
 Frame FrameQueue::getLastFrame() {
+  assert(keepLast);
   // 需要拿到锁，防止pop的时候修改lastFrame
   std::unique_lock<std::mutex> lock(mtx);
-  return lastFrame;
+  // 在queue的尾部
+  return std::move(buf[tail]);
 }
 
 FrameQueue::~FrameQueue() {
   // 释放所有 pkt
-  for (int i = head; i != tail; i = (i + 1) % bufCap) {
+  for (size_t i = head; i != tail; i = (i + 1) % bufCap) {
     buf[i].release();
   }
+  // 释放lastFrame
+  if (keepLast)
+    buf[tail].release();
 }

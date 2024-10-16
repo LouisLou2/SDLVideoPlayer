@@ -5,7 +5,9 @@
 #include "player/sdl_video_player/sdl_vid_player_setting.h"
 
 #ifdef __cplusplus
+extern "C"{
 #include <libavutil/rational.h>
+}
 #else
 #include <libavutil/rational.h>
 #endif

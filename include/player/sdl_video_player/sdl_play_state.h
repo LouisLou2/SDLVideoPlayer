@@ -5,21 +5,25 @@
 #ifndef PLAY_STATE_H
 #define PLAY_STATE_H
 #include <cstdint>
+#include <chrono>
+#include "sdl_clock_group.h"
 #ifdef __cplusplus
 extern "C" {
-#include <SDL_audio.h>
+#include <SDL2/SDL_audio.h>
 }
 #else
-#include <SDL_audio.h>
+#include <SDL2/SDL_audio.h>
 #endif
 #include <bits/algorithmfwd.h>
-
 #include "const/play_sync_type.h"
 #include "util/sync/clock.h"
 
 struct SDLPlayState {
   friend class SDLVideoPlayer;
+  friend class SDLAudioDecodeRegin;
+  friend class SDLVideoDecodeRegin;
 private:
+  uint32_t serial;
   // 以下三个index是播放的流的index，-1表示没有播放
   int32_t lastVidStInd;
   int32_t lastAudStInd;
@@ -33,13 +37,11 @@ private:
   uint32_t x;
   uint32_t y; // 这里的x和y是窗口的位置， 以左上角为原点
 
-  Clock audClk;
-  Clock vidClk;
-  Clock extClk;
-
   bool mute;
   bool paused;
   uint8_t volume; // 音量, 0-128, 因为SDL的音量范围是0-128
+
+  ClockGroup clkGroup;
 
   PlaySyncType syncType;
   int audioClockSerial;
@@ -59,7 +61,7 @@ private:
 public:
   static constexpr uint8_t sdlMinVolume = 0;
   static constexpr uint8_t sdlMaxVolume = 100;
-  SDLPlayState();
+  explicit SDLPlayState(double playSpeed);
   static int getAborted(void* state);
 };
 

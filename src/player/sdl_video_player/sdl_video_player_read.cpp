@@ -45,7 +45,7 @@ void SDLVideoPlayer::determineStream() {
     }
   }
 
-  if (!settings.disableVid) {
+  if (settings.presentForm.isEnableVid()) {
     stIndex[AVMEDIA_TYPE_VIDEO] = av_find_best_stream(videoInfo.fmtCtx.get(),
                                                      AVMEDIA_TYPE_VIDEO,
                                                      stIndex[AVMEDIA_TYPE_VIDEO],
@@ -53,7 +53,7 @@ void SDLVideoPlayer::determineStream() {
                                                      nullptr,
                                                      0);
   }
-  if (!settings.disableAud) {
+  if (settings.presentForm.isEnableAud()) {
     stIndex[AVMEDIA_TYPE_AUDIO] = av_find_best_stream(videoInfo.fmtCtx.get(),
                                                        AVMEDIA_TYPE_AUDIO,
                                                        stIndex[AVMEDIA_TYPE_AUDIO],
@@ -61,7 +61,7 @@ void SDLVideoPlayer::determineStream() {
                                                        nullptr,
                                                        0);
   }
-  if (!settings.disableVid && !settings.disableSub) {
+  if (settings.presentForm.isEnableVid() && settings.presentForm.isEnableSub()) {
     /*在related stream中，如果video stream存在，那么subtitle stream应该和video stream同步，否则，和audio stream同步*/
     stIndex[AVMEDIA_TYPE_SUBTITLE] = av_find_best_stream(videoInfo.fmtCtx.get(),
                                                          AVMEDIA_TYPE_SUBTITLE,
@@ -143,9 +143,8 @@ std::optional<ErrorDesc> SDLVideoPlayer::openStreamComponent(AVMediaType type, u
   // open codec
   ret = avcodec_open2(codecCtx, codec, &opts);
   std::unique_ptr<AVDictionary, AVDictionaryDeleter> optsPtr(opts);
-  if (ret < 0) {
+  if (ret < 0)
     return ErrorDesc::from(ExceptionType::FFmpegSetFailed, std::string("Can't open codec: ") + avcodec_get_name(codecCtx->codec_id));
-  }
   // 检查设置的opts是否都被使用了
   std::vector<AVDictionaryEntry*> optlist = FFUtil::getAllEntries(opts);
   if (!optlist.empty()) {
@@ -159,6 +158,7 @@ std::optional<ErrorDesc> SDLVideoPlayer::openStreamComponent(AVMediaType type, u
 
   uint32_t sampleRate;
   AVChannelLayout chLayout;
+  std::unique_ptr<AVChannelLayout, AVChannelLayoutInStackDeleter> chLayoutPtr(&chLayout); // 它没有析构函数，即使在栈区，也得使用智能指针防止其内部指针指向的数据泄漏
   std::optional<ErrorDesc> optErr = std::nullopt;
   // 开始分不同类型
   switch (type) {
@@ -166,7 +166,7 @@ std::optional<ErrorDesc> SDLVideoPlayer::openStreamComponent(AVMediaType type, u
       //TODO: 这一步的set大概率不会失败，，但其中对于ch_layout的copy也可能会失败，之后正在回头看这一步吧
       mediaFilterInfo.setAudFilterParamsSrc(codecCtx->sample_rate, &codecCtx->ch_layout, codecCtx->sample_fmt);
       // 第一次调用
-      optErr = mediaFilterInfo.configAudioFilter(settings.swrOpts, settings.audioFilterGraphStr, settings.filterThreadsNum, false);
+      optErr = mediaFilterInfo.configAudioFilter(settings.swrOpts, settings.audioFilterGraphStr, settings.filterThreadsNum);
       if (optErr) return optErr; // 如果配置失败，直接返回错误信息，之所以可以没有顾虑地释放，因为一些资源被智能指针接管了
       sampleRate = mediaFilterInfo.getFilterOutSampleRate();
       if (!mediaFilterInfo.getFilterOutChLayout(&chLayout)) {
@@ -189,10 +189,12 @@ void SDLVideoPlayer::read() {
   int ret;
   // playState.eof默认是false，这里不用修改了
   AVPacket* pkt = av_packet_alloc();
-  if (!pkt) throw ErrorDesc::from(ExceptionType::MemoryAllocFailed, "Can't allocate AVPacket");
+  if (!pkt)
+    throw ErrorDesc::from(ExceptionType::MemoryAllocFailed, "Can't allocate AVPacket");
 
   AVFormatContext* fmtCtx = avformat_alloc_context();
-  if (!fmtCtx) throw ErrorDesc::from(ExceptionType::MemoryAllocFailed, "Can't allocate AVFormatContext");
+  if (!fmtCtx)
+    throw ErrorDesc::from(ExceptionType::MemoryAllocFailed, "Can't allocate AVFormatContext");
   // 下面的两个语句简直恶心，但是为了配合ffmpeg的设计，不得不这样写
   fmtCtx->interrupt_callback.callback = &SDLPlayState::getAborted;
   fmtCtx->interrupt_callback.opaque = &playState;
@@ -205,7 +207,8 @@ void SDLVideoPlayer::read() {
   ret = avformat_open_input(&fmtCtx, videoInfo.originalUrl.c_str(), videoInfo.iformat, &fmtOpts);
   // 释放fmtOpts,尽早释放，防止出现什么异常导致内存泄漏
   av_dict_free(&fmtOpts);
-  if (ret < 0) throw ErrorDesc::from(ExceptionType::BrokenStream, "Can't open stream: " + videoInfo.originalUrl);
+  if (ret < 0)
+    throw ErrorDesc::from(ExceptionType::BrokenStream, "Can't open stream: " + videoInfo.originalUrl);
   videoInfo.fmtCtx.reset(fmtCtx); // 使用unique_ptr管理fmtCtx, 但是接下来的使用还是用fmtCtx，方便
 
   if (settings.genPts) fmtCtx->flags |= AVFMT_FLAG_GENPTS;
@@ -218,7 +221,8 @@ void SDLVideoPlayer::read() {
     // 使用完了，释放：foreach语句
     std::ranges::for_each(optlist, [](AVDictionary*& dict) { av_dict_free(&dict); });
     // 检查是否成功
-    if (ret < 0) throw ErrorDesc::from(ExceptionType::BrokenStream, "Can't find stream info: " + videoInfo.originalUrl);
+    if (ret < 0)
+      throw ErrorDesc::from(ExceptionType::BrokenStream, "Can't find stream info: " + videoInfo.originalUrl);
   }
 
   if(fmtCtx->pb) fmtCtx->pb->eof_reached = 0; // 表示未到达末尾 //TODO: 这里对于网络流可能有问题

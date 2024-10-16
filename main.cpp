@@ -1,10 +1,7 @@
 #include <chrono>
-#include <player/player_setting_fac.h>
 
 #include "player/sdl_video_player/sdl_video_player.h"
 #include "player/video_player.h"
-
-#include "entity/error_desc.h"
 #include "util/logger/player_logger.h"
 
 void testio() {
@@ -44,7 +41,6 @@ void testio() {
   }
 }
 
-
 int main() {
   // try {
   //   std::cout << "Throwing exception now..." << std::endl;
@@ -53,11 +49,11 @@ int main() {
   //   PlayerLogger::log(LogLevel::Critical,e.what());
   // }
   // PlayerSetting* setting = PlayerSettingFac::createPlayerSetting(PlayerTypeEnum::SDLPlayer, "test", true, false, false, false, false, 1920, 1080);
-  SDLVidPlayerSettings setting = SDLVidPlayerSettings("test", true, false, false, false, ShowModeEnum::None, false, false, 1920, 1080);
-  std::unique_ptr settingPtr = std::unique_ptr<PlayerSetting>(
-    PlayerSettingFac::createPlayerSetting(PlayerTypeEnum::SDLPlayer, "test", true, false, false, false, ShowModeEnum::None,false, false, 1920, 1080)
-  );
-  VideoPlayer&& player = SDLVideoPlayer("/home/leo/Media/medias/bejeweled_20-23.mp4",std::nullopt);
+  SDLVidPlayerSettings setting = SDLVidPlayerSettings("test", true, 1.0, ShowModeEnum::All);
+  // std::unique_ptr settingPtr = std::unique_ptr<PlayerSetting>(
+  //   PlayerSettingFac::createPlayerSetting(PlayerTypeEnum::SDLPlayer, "test", true, false, false, false, ShowModeEnum::None,false, false, 1920, 1080)
+  // );
+  VideoPlayer&& player = SDLVideoPlayer("/home/leo/Media/medias/bejeweled_20-23.mp4",&setting);
   player.play();
   return 0;
 }

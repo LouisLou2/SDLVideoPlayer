@@ -29,10 +29,12 @@ class SDLDisplayer {
   static constexpr uint16_t maxCallsPerSec = 35;
 
   // non-static
-  SDL_AudioDeviceID audioDeviceId;
   std::unique_ptr<SDL_Window, SDL_WindowDeleter> window;
   std::unique_ptr<SDL_Renderer, SDL_RendererDeleter> renderer;
   SDL_RendererInfo rendererInfo;
+
+  SDL_AudioDeviceID audioDeviceId;
+  uint32_t audioBufThreshold;
 public:
   std::optional<ErrorDesc> initDisplayer(const SDLVidPlayerSettings& settings);
 
@@ -41,7 +43,7 @@ public:
     const AVChannelLayout* ch_layout) noexcept(false);
 
   // 以下函数可能会更改wantedChLayOut,并且可能抛出异常
-  AudioParams configAudioDisplay(
+  std::pair<AudioParams,uint32_t> configAudioDisplay(
     SDL_AudioCallback callback,
     AVChannelLayout* wantedChLayOut,
     uint32_t wantedSR,

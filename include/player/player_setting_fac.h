@@ -4,7 +4,6 @@
 
 #ifndef PLAYER_SETTING_FAC_H
 #define PLAYER_SETTING_FAC_H
-#include <memory>
 #include <utility>
 #include "entity/error_desc.h"
 #include "player_setting.h"

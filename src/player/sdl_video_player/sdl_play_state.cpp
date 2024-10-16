@@ -11,7 +11,8 @@ extern "C" {
 #include <SDL_audio.h>
 #endif
 
-SDLPlayState::SDLPlayState():
+SDLPlayState::SDLPlayState(double playSpeed):
+  serial(0),
   lastVidStInd(-1),
   lastAudStInd(-1),
   lastSubStInd(-1),
@@ -27,6 +28,7 @@ SDLPlayState::SDLPlayState():
   mute(false),
   paused(false),
   volume(SDL_MIX_MAXVOLUME / 2),
+  clkGroup(playSpeed),
   syncType(PlaySyncType::AudioMaster),
   audioClockSerial(-1),
   eof(false), // 默认没有到达文件尾
@@ -35,4 +37,5 @@ SDLPlayState::SDLPlayState():
   playOffset(0),
   defaultPicWidth(0),
   defaultPicHeight(0){
+  // clkGroup(playSpeed)其中的playSpeed一定是合法的，会提前检查
 }

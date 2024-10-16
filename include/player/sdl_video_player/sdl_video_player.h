@@ -5,9 +5,11 @@
 #ifndef VIDEOPLAYER_H
 #define VIDEOPLAYER_H
 
+#include "sdl_audio_decode_regin.h"
 #include "sdl_cache_collection.h"
 #include "sdl_displayer.h"
 #include "sdl_media_filter_info.h"
+#include "sdl_video_decode_regin.h"
 #include "player/sdl_video_player/sdl_thread_coordinator.h"
 #include "player/video_player.h"
 #include "player/sdl_video_player/sdl_play_state.h"
@@ -26,6 +28,9 @@ class SDLVideoPlayer final : public VideoPlayer {
   SDLPlayerCacheCollection cacheCollection;
   SDLDisplayer displayer;
 
+  SDLAudioDecodeRegin audDecodeRegin;
+  SDLVideoDecodeRegin vidDecodeRegin;
+
   void openStream();
   void initAv();
   void read();
@@ -35,7 +40,7 @@ class SDLVideoPlayer final : public VideoPlayer {
 public:
   explicit SDLVideoPlayer(
     const std::string& video_path,
-    const std::optional<SDLVidPlayerSettings>& setting = std::nullopt
+    const std::optional<const SDLVidPlayerSettings*>& setting = std::nullopt
   );
   // 可能会抛出异常
   void play() override;

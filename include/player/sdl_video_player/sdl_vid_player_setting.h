@@ -12,6 +12,8 @@
 #include <vector>
 #include <format>
 #include <bits/algorithmfwd.h>
+
+#include "sdl_presentation_form.h"
 #include "const/show_mode_enum.h"
 #ifdef __cplusplus
 extern "C"{
@@ -42,21 +44,26 @@ public:
   static constexpr SDL_AudioFormat theOnlyAllowedSRFmt_SDL = AUDIO_S16SYS;
   static constexpr uint32_t defWinWidth = 640;
   static constexpr uint32_t defWinHeight = 480;
+
   static constexpr uint8_t maxDecoderThreads = 16;
   static constexpr uint8_t minDecoderThreads = 1;
+
   static constexpr uint8_t maxFilterThreads = 16;
   static constexpr uint8_t minFilterThreads = 1;
+
   static constexpr uint8_t threadsNumAuto = 0;
+
+  static constexpr double maxPlaySpeed = 5.0;
+  static constexpr double minPlaySpeed = 0.25;
 private:
   // static
   static constexpr uint8_t maxVolume = 100;
   static constexpr uint8_t minVolume = 0;
   std::string windowTitle;
   bool enableNetwork;
-  bool disableAud;
-  bool disableVid;
-  bool disableSub;
-  ShowModeEnum showMode;
+  double playSpeed;
+
+  MediaPresentForm presentForm;
 
   uint16_t useDisplayIndex;
   bool alwaysOnTop;
@@ -97,10 +104,8 @@ public:
   explicit SDLVidPlayerSettings(
     auto&& title = "Unnamed Player",
     bool enableNetwork = true,
-    bool disableAud = false,
-    bool disableVideo = false,
-    bool disableSub = false,
-    ShowModeEnum showMode = ShowModeEnum::Video, // 默认显示视频,即全部显示
+    std::optional<double> playSpeed = std::nullopt,
+    ShowModeEnum showMode = ShowModeEnum::All,
     uint16_t useDisplayIndex = 0,
     bool alwaysOnTop = false,
     bool borderless = false,
@@ -139,21 +144,19 @@ public:
    * 所以这个构造函数可以接受右值引用，可能会调用成构造函数，这不是预期的，可以将
    */
   SDLVidPlayerSettings(SDLVidPlayerSettings&& setting) = default;
-
   [[nodiscard]] std::optional<ErrorDesc> checkConflictsWithHardware() const;
   [[nodiscard]] AVDictionary* getFormatOpt() const;
   [[nodiscard]] std::vector<AVDictionary*> getCodecOpts(const AVFormatContext* fmtCtx) const;
   // TODO: 此函数拿到的信息太丰富了，后续尝试精简
   [[nodiscard]] AVDictionary* filterOpts(const AVCodec* codec, const AVCodecContext* codecCtx, const AVFormatContext* fmt, const AVStream* st);
+  MediaPresentForm& getPresentFormNonConstRef(){return presentForm;}
 };
 
 SDLVidPlayerSettings::SDLVidPlayerSettings(
   auto&& title,
   bool enableNetwork,
-  bool disableAud,
-  bool disableVideo,
-  bool disableSub,
-  ShowModeEnum showMode,
+  std::optional<double> playSpeed,
+  ShowModeEnum showMode, // 注意这个的现在，代表用户的期望，不一定能满足，因为就像用户期待音频+视频，但是实际上只有音频，所以后续一定会修正
   uint16_t useDisplayIndex,
   bool alwaysOnTop,
   bool borderless,
@@ -181,10 +184,7 @@ SDLVidPlayerSettings::SDLVidPlayerSettings(
 ) :
   windowTitle(std::forward<decltype(title)>(title)),
   enableNetwork(enableNetwork),
-  disableAud(disableAud),
-  disableVid(disableVideo),
-  disableSub(disableSub),
-  showMode(showMode),
+  presentForm(showMode),
   useDisplayIndex(useDisplayIndex),
   alwaysOnTop(alwaysOnTop),
   borderless(borderless),
@@ -207,39 +207,53 @@ SDLVidPlayerSettings::SDLVidPlayerSettings(
   decoderThreadsNum(decodeThreadsNum.value_or(0)),
   filterThreadsNum(filterThreadsNum.value_or(0)),
   audioFilterGraphStr(std::move(audioFilterGraphStr)),
-  swrOpts(std::move(swrOpts))
-{
-  if (specifiedInputFormat) this->inputFormat = inputFormat.value(); // 如果没有输入格式，
+  swrOpts(std::move(swrOpts)) {
+  if (specifiedInputFormat) this->inputFormat = inputFormat.value(); // 如果指定输入格式，
   if (specifiedSeekType) this->seekType = seekType.value();
-  if (volumeWithin100 > maxVolume || volumeWithin100 < minVolume) {
-    // 修正
-    this->volumeWithin100 = std::clamp(volumeWithin100, minVolume, maxVolume);
-    // 给出警告
-    PlayerLogger::log(ErrorDesc::from(
-      ExceptionType::AutoAdjust,
-      std::format("Volume should be in range [{}, {}], but got {}, so adjust to {}", minVolume, maxVolume, volumeWithin100, this->volumeWithin100)
-      )
-    );
+  if (playSpeed.has_value()) {
+    // 一旦指定了播放速度，那么就要检查是否在合理范围内
+    if (playSpeed.value() > maxPlaySpeed || playSpeed.value() < minPlaySpeed) {
+      // 修正
+      this->playSpeed = std::clamp(playSpeed.value(), minPlaySpeed, maxPlaySpeed);
+      // 给出警告
+      PlayerLogger::log(ErrorDesc::from(
+        ExceptionType::AutoAdjust,
+        std::format("Play speed should be in range [{}, {}], but got {}, so adjust to {}", minPlaySpeed, maxPlaySpeed, playSpeed.value(), this->playSpeed)
+        )
+      );
+    }else {
+      this->playSpeed = 1.0;
+    }
+    if (volumeWithin100 > maxVolume || volumeWithin100 < minVolume) {
+      // 修正
+      this->volumeWithin100 = std::clamp(volumeWithin100, minVolume, maxVolume);
+      // 给出警告
+      PlayerLogger::log(ErrorDesc::from(
+        ExceptionType::AutoAdjust,
+        std::format("Volume should be in range [{}, {}], but got {}, so adjust to {}", minVolume, maxVolume, volumeWithin100, this->volumeWithin100)
+        )
+      );
+    }
+    if (decodeThreadsNum.has_value() && (decodeThreadsNum == 0 || decodeThreadsNum>16) ) {
+      // 给出警告
+      this->decoderThreadsNum = threadsNumAuto;
+      PlayerLogger::log(ErrorDesc::from(
+        ExceptionType::AutoAdjust,
+        std::format("decode threads num should be in range [{}, {}], but got {}, so adjust to auto", minDecoderThreads, maxDecoderThreads, decodeThreadsNum.value())
+        )
+      );
+    }
+    if (filterThreadsNum.has_value() && (filterThreadsNum == 0 || filterThreadsNum>16) ) {
+      // 给出警告
+      this->filterThreadsNum = threadsNumAuto;
+      PlayerLogger::log(ErrorDesc::from(
+        ExceptionType::AutoAdjust,
+        std::format("filter threads num should be in range [{}, {}], but got {}, so adjust to auto", minFilterThreads, maxFilterThreads, filterThreadsNum.value())
+        )
+      );
+    }
+    // 关于硬件的冲突检查，这里不做(在)，因为如果这里抛出异常，那么在构造函数中就会抛出异常，虽然仍然可以释放资源，但是对于VideoPlayer的构造来说，setting通常是在初始化列表，不太好try-catch
   }
-  if (decodeThreadsNum.has_value() && (decodeThreadsNum == 0 || decodeThreadsNum>16) ) {
-    // 给出警告
-    this->decoderThreadsNum = threadsNumAuto;
-    PlayerLogger::log(ErrorDesc::from(
-      ExceptionType::AutoAdjust,
-      std::format("decode threads num should be in range [{}, {}], but got {}, so adjust to auto", minDecoderThreads, maxDecoderThreads, decodeThreadsNum.value())
-      )
-    );
-  }
-  if (filterThreadsNum.has_value() && (filterThreadsNum == 0 || filterThreadsNum>16) ) {
-    // 给出警告
-    this->filterThreadsNum = threadsNumAuto;
-    PlayerLogger::log(ErrorDesc::from(
-      ExceptionType::AutoAdjust,
-      std::format("filter threads num should be in range [{}, {}], but got {}, so adjust to auto", minFilterThreads, maxFilterThreads, filterThreadsNum.value())
-      )
-    );
-  }
-  // 关于硬件的冲突检查，这里不做(在)，因为如果这里抛出异常，那么在构造函数中就会抛出异常，虽然仍然可以释放资源，但是对于VideoPlayer的构造来说，setting通常是在初始化列表，不太好try-catch
 }
 
 #endif //SDL_VIDEO_PLAYER_SETTING_H
