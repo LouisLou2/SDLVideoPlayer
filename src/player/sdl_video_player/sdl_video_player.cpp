@@ -66,7 +66,7 @@ void SDLVideoPlayer::play() {
   // 等到play函数调用时才初始化
   initAv();
   // 显示器(使用SDL的)初始化
-  if (std::optional<ErrorDesc> optErr = displayer.initDisplayer(settings)) throw optErr.value();
+  if (std::optional<ErrorDesc> optErr = displayer.initDisplayer(settings,playState.presentForm)) throw optErr.value();
   openStream();
   coordinator.readThread.join();
 }

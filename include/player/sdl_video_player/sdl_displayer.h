@@ -4,6 +4,7 @@
 
 #ifndef SDL_DISPLAYER_H
 #define SDL_DISPLAYER_H
+#include "sdl_presentation_form.h"
 #include "entity/audio_params.h"
 
 #ifdef __cplusplus
@@ -36,7 +37,7 @@ class SDLDisplayer {
   SDL_AudioDeviceID audioDeviceId;
   uint32_t audioBufThreshold;
 public:
-  std::optional<ErrorDesc> initDisplayer(const SDLVidPlayerSettings& settings);
+  std::optional<ErrorDesc> initDisplayer(const SDLVidPlayerSettings& settings,const MediaPresentForm& presentForm);
 
   static AudioParams copySDLAudioSpecToAudioParams(
     const SDL_AudioSpec& spec,

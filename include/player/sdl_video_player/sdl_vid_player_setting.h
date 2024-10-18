@@ -12,8 +12,6 @@
 #include <vector>
 #include <format>
 #include <bits/algorithmfwd.h>
-
-#include "sdl_presentation_form.h"
 #include "const/show_mode_enum.h"
 #ifdef __cplusplus
 extern "C"{
@@ -63,7 +61,11 @@ private:
   bool enableNetwork;
   double playSpeed;
 
-  MediaPresentForm presentForm;
+  /*此值仅仅是为了构造playState中的MediaPresentForm presentForm,
+   *此变量初始化后会在联系实际的时候再用一次，之后就不会访问了，
+   *但是这个值是不需要改变了，因为之后都由playState中的presentForm来表示，这个字段失去价值
+   */
+  const ShowModeEnum showMode;
 
   uint16_t useDisplayIndex;
   bool alwaysOnTop;
@@ -105,7 +107,7 @@ public:
     auto&& title = "Unnamed Player",
     bool enableNetwork = true,
     std::optional<double> playSpeed = std::nullopt,
-    ShowModeEnum showMode = ShowModeEnum::All,
+    ShowModeEnum showMode = ShowModeEnum::Auto,
     uint16_t useDisplayIndex = 0,
     bool alwaysOnTop = false,
     bool borderless = false,
@@ -149,7 +151,6 @@ public:
   [[nodiscard]] std::vector<AVDictionary*> getCodecOpts(const AVFormatContext* fmtCtx) const;
   // TODO: 此函数拿到的信息太丰富了，后续尝试精简
   [[nodiscard]] AVDictionary* filterOpts(const AVCodec* codec, const AVCodecContext* codecCtx, const AVFormatContext* fmt, const AVStream* st);
-  MediaPresentForm& getPresentFormNonConstRef(){return presentForm;}
 };
 
 SDLVidPlayerSettings::SDLVidPlayerSettings(
@@ -184,7 +185,7 @@ SDLVidPlayerSettings::SDLVidPlayerSettings(
 ) :
   windowTitle(std::forward<decltype(title)>(title)),
   enableNetwork(enableNetwork),
-  presentForm(showMode),
+  showMode(showMode),
   useDisplayIndex(useDisplayIndex),
   alwaysOnTop(alwaysOnTop),
   borderless(borderless),
@@ -208,6 +209,7 @@ SDLVidPlayerSettings::SDLVidPlayerSettings(
   filterThreadsNum(filterThreadsNum.value_or(0)),
   audioFilterGraphStr(std::move(audioFilterGraphStr)),
   swrOpts(std::move(swrOpts)) {
+  // 关于showMode,其实如果showMode是不播放图像的，那么例如windowWidth和windowHeight就没有意义了，其实可以检查，这里就不检查了
   if (specifiedInputFormat) this->inputFormat = inputFormat.value(); // 如果指定输入格式，
   if (specifiedSeekType) this->seekType = seekType.value();
   if (playSpeed.has_value()) {

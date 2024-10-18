@@ -30,10 +30,10 @@ AudioParams SDLDisplayer::copySDLAudioSpecToAudioParams(const SDL_AudioSpec& spe
   return paras;
 }
 
-std::optional<ErrorDesc> SDLDisplayer::initDisplayer(const SDLVidPlayerSettings& settings) {
+std::optional<ErrorDesc> SDLDisplayer::initDisplayer(const SDLVidPlayerSettings& settings, const MediaPresentForm& presentForm) {
   uint32_t flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER;
-  if (!settings.presentForm.isEnableAud()) flags &= ~SDL_INIT_AUDIO;
-  if (!settings.presentForm.isEnableVid()) flags &= ~SDL_INIT_VIDEO;
+  if (!presentForm.isEnableAud()) flags &= ~SDL_INIT_AUDIO;
+  if (!presentForm.isEnableVid()) flags &= ~SDL_INIT_VIDEO;
   if (SDL_Init(flags)) {
     // 初始化失败
     return ErrorDesc::from(ExceptionType::SDLInitFailed, SDL_GetError());
@@ -42,7 +42,7 @@ std::optional<ErrorDesc> SDLDisplayer::initDisplayer(const SDLVidPlayerSettings&
   SDL_EventState(SDL_SYSWMEVENT, SDL_IGNORE);
   SDL_EventState(SDL_USEREVENT, SDL_IGNORE);
 
-  if (!settings.presentForm.isEnableVid()) return std::nullopt;
+  if (!presentForm.isEnableVid()) return std::nullopt;
 
   uint32_t sdlFlags = SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE;
   if (settings.alwaysOnTop) sdlFlags |= SDL_WINDOW_ALWAYS_ON_TOP;

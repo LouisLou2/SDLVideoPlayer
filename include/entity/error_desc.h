@@ -30,9 +30,9 @@ public:
   // 移动赋值运算符
   ErrorDesc& operator=(ErrorDesc&&) noexcept;
   // 拷贝构造函数
-  ErrorDesc(const ErrorDesc&);
+  ErrorDesc(const ErrorDesc&) noexcept;
   // 拷贝赋值运算符
-  ErrorDesc& operator=(const ErrorDesc&);
+  ErrorDesc& operator=(const ErrorDesc&) noexcept;
   /*
    * 当实参desc是string的右值引用，右值，const char*或者char*时，auto&&会推导为...
    */
@@ -77,14 +77,14 @@ inline ErrorDesc& ErrorDesc::operator=(ErrorDesc&& other) noexcept {
   return *this;
 }
 
-inline ErrorDesc::ErrorDesc(const ErrorDesc& other) :
+inline ErrorDesc::ErrorDesc(const ErrorDesc& other) noexcept :
   level(other.level),
   type(other.type),
   typeStr(other.typeStr),
   desc(other.desc),
   formattedMsg(other.formattedMsg){}
 
-inline ErrorDesc& ErrorDesc::operator=(const ErrorDesc& other) {
+inline ErrorDesc& ErrorDesc::operator=(const ErrorDesc& other) noexcept{
   if (this == &other) {
     return *this;
   }

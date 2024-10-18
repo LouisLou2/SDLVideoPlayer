@@ -19,6 +19,7 @@ extern "C" {
 #define MAX_FRAME_DURATION_FOR_DISCON 10.0
 #define MAX_FRAME_DURATION_FOR_CON 3600.0
 
+// 在没有调用这个函数之前，presentForm仅仅代表用户意愿（所以auto就代表用户接受一切安排），经过这个函数就是用户意愿+实际情况
 void SDLVideoPlayer::determineStream() {
   auto& stIndex = videoInfo.streamIndex;
   // 差不多nb_streams应该不会太大，所以就用uint16_t了
@@ -45,7 +46,7 @@ void SDLVideoPlayer::determineStream() {
     }
   }
 
-  if (settings.presentForm.isEnableVid()) {
+  if (playState.presentForm.isEnableVid()) {
     stIndex[AVMEDIA_TYPE_VIDEO] = av_find_best_stream(videoInfo.fmtCtx.get(),
                                                      AVMEDIA_TYPE_VIDEO,
                                                      stIndex[AVMEDIA_TYPE_VIDEO],
@@ -53,7 +54,7 @@ void SDLVideoPlayer::determineStream() {
                                                      nullptr,
                                                      0);
   }
-  if (settings.presentForm.isEnableAud()) {
+  if (playState.presentForm.isEnableAud()) {
     stIndex[AVMEDIA_TYPE_AUDIO] = av_find_best_stream(videoInfo.fmtCtx.get(),
                                                        AVMEDIA_TYPE_AUDIO,
                                                        stIndex[AVMEDIA_TYPE_AUDIO],
@@ -61,7 +62,8 @@ void SDLVideoPlayer::determineStream() {
                                                        nullptr,
                                                        0);
   }
-  if (settings.presentForm.isEnableVid() && settings.presentForm.isEnableSub()) {
+  // presentForm中字幕是不能脱离图画的，其实这里只考虑字幕即可，但是先这样写吧
+  if (playState.presentForm.isEnableVid() && playState.presentForm.isEnableSub()) {
     /*在related stream中，如果video stream存在，那么subtitle stream应该和video stream同步，否则，和audio stream同步*/
     stIndex[AVMEDIA_TYPE_SUBTITLE] = av_find_best_stream(videoInfo.fmtCtx.get(),
                                                          AVMEDIA_TYPE_SUBTITLE,
@@ -69,6 +71,11 @@ void SDLVideoPlayer::determineStream() {
                                                          stIndex[AVMEDIA_TYPE_AUDIO] >= 0 ? stIndex[AVMEDIA_TYPE_AUDIO] : stIndex[AVMEDIA_TYPE_VIDEO],
                                                          nullptr,
                                                          0);
+  }
+  // 需要对presentForm进行修正
+  auto err = playState.correctPresentForm(settings.showMode, stIndex[AVMEDIA_TYPE_AUDIO] >= 0, stIndex[AVMEDIA_TYPE_VIDEO] >= 0, stIndex[AVMEDIA_TYPE_SUBTITLE] >= 0);
+  if (err) {
+    throw err.value();
   }
 }
 
@@ -249,7 +256,7 @@ void SDLVideoPlayer::read() {
   if (settings.showStatus) {
     av_dump_format(fmtCtx, 0, videoInfo.originalUrl.c_str(), 0);
   }
-  determineStream();
+  determineStream(); // 这里可能抛出异常
   if (videoInfo.streamIndex[AVMEDIA_TYPE_VIDEO] >= 0) {
     AVStream* st = fmtCtx->streams[videoInfo.streamIndex[AVMEDIA_TYPE_VIDEO]];
     AVCodecParameters* codecpar = st->codecpar;

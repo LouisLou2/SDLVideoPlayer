@@ -20,9 +20,9 @@ SDLVideoPlayer::SDLVideoPlayer(
   const std::string& video_path,
   const std::optional<const SDLVidPlayerSettings*>& setting
 ): settings(setting.has_value() && setting.value() ? *(setting.value()) : SDLVidPlayerSettings(programName)),
-   audDecodeRegin(SAMPLE_CAP_MAX, false, playState, settings.presentForm),
+   audDecodeRegin(SAMPLE_CAP_MAX, false, playState),
    vidDecodeRegin(PIC_CAP_MAX, true,SUB_CAP_MAX, false, playState),
-   playState(this->settings.playSpeed) {
+   playState(this->settings.playSpeed, this->settings.showMode) {
   videoInfo.originalUrl = video_path;
 }
 

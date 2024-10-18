@@ -24,15 +24,13 @@ class SDLAudioDecodeRegin {
   // 下面是用于音视频播放控制的变量，他们集结在SDLVideoPlayer的PlayState中，这里我们引用他(const形式)
   // TODO: 实际上不是其中的所有值都会使用到，这样直接引用会导致不必要的耦合，后续可以考虑将其中的一部分值提取出来
   const SDLPlayState& playState;
-  MediaPresentForm& presentForm;
 
 public:
   // cons
   SDLAudioDecodeRegin(
       size_t aFrameqSize,
       bool aFrameqKeepLast,
-      const SDLPlayState& playState,
-      MediaPresentForm& presentForm
+      const SDLPlayState& playState
     );
   void decodeFrame();
 };
@@ -41,9 +39,8 @@ public:
 inline SDLAudioDecodeRegin::SDLAudioDecodeRegin(
     size_t aFrameqSize,
     bool aFrameqKeepLast,
-    const SDLPlayState& playState,
-    MediaPresentForm& presentForm
+    const SDLPlayState& playState
   ) :
   aFrameq(aFrameqSize, aFrameqKeepLast),
-  playState(playState), presentForm(presentForm) {}
+  playState(playState){}
 #endif //SDL_AUDIO_DECODE_REGIN_H

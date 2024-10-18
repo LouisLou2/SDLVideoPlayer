@@ -6,7 +6,10 @@
 #define PLAY_STATE_H
 #include <cstdint>
 #include <chrono>
+#include <entity/error_desc.h>
+
 #include "sdl_clock_group.h"
+#include "sdl_presentation_form.h"
 #ifdef __cplusplus
 extern "C" {
 #include <SDL2/SDL_audio.h>
@@ -56,12 +59,15 @@ private:
   uint32_t defaultPicWidth;
   uint32_t defaultPicHeight;
 
+  MediaPresentForm presentForm;
+
   // private func
   inline void setSDLVolumeUsingPercent(uint8_t vol);
 public:
   static constexpr uint8_t sdlMinVolume = 0;
   static constexpr uint8_t sdlMaxVolume = 100;
-  explicit SDLPlayState(double playSpeed);
+  std::optional<ErrorDesc> correctPresentForm(ShowModeEnum originalShowMode,bool hasAud, bool hasVid, bool hasSub);
+  explicit SDLPlayState(double playSpeed,ShowModeEnum showMode);
   static int getAborted(void* state);
 };
 

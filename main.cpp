@@ -49,7 +49,7 @@ int main() {
   //   PlayerLogger::log(LogLevel::Critical,e.what());
   // }
   // PlayerSetting* setting = PlayerSettingFac::createPlayerSetting(PlayerTypeEnum::SDLPlayer, "test", true, false, false, false, false, 1920, 1080);
-  SDLVidPlayerSettings setting = SDLVidPlayerSettings("test", true, 1.0, ShowModeEnum::All);
+  SDLVidPlayerSettings setting = SDLVidPlayerSettings("test", true, 1.0);
   // std::unique_ptr settingPtr = std::unique_ptr<PlayerSetting>(
   //   PlayerSettingFac::createPlayerSetting(PlayerTypeEnum::SDLPlayer, "test", true, false, false, false, ShowModeEnum::None,false, false, 1920, 1080)
   // );

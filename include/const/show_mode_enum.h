@@ -12,6 +12,7 @@
  * 剩下两位可表示四个值，表示音频的可视化方式，目前用到00和01，分别表示波形和快速离散余弦变换
  */
 enum class ShowModeEnum: uint8_t {
+  Auto = 0b00000000, // 自动选择
   All = 0b00011100, // 显示所有
   OnlyPic = 0b00001000, // 仅仅显示图片
   AudioAndPic = 0b00011000, // 显示音频和图片,忽略字幕
@@ -26,5 +27,25 @@ enum class AudioVisualForm : uint8_t{
   Waves = 0,
   RDFT = 1,
 };
+
+class ShowModeUtil {
+public:
+  // inline static ShowModeEnum getShowModeEnum(bool enableAud, bool enableVid, bool enableSub, AudioVisualForm audVisForm = AudioVisualForm::Waves);
+};
+
+// inline ShowModeEnum ShowModeUtil::getShowModeEnum(bool enableAud, bool enableVid, bool enableSub, AudioVisualForm audVisForm) {
+//     uint8_t res = 0;
+//     if (enableAud) {
+//         res |= 0b00010000;
+//     }
+//     if (enableVid) {
+//         res |= 0b00001000;
+//     }
+//     if (enableSub) {
+//         res |= 0b00000100;
+//     }
+//     res |= static_cast<uint8_t>(audVisForm);
+//     return static_cast<ShowModeEnum>(res);
+// }
 
 #endif //SHOW_MODE_ENUM_H
