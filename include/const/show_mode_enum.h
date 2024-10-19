@@ -11,8 +11,8 @@
  * 第6位表示是否显示字幕，
  * 剩下两位可表示四个值，表示音频的可视化方式，目前用到00和01，分别表示波形和快速离散余弦变换
  */
+// 注意，决不允许定义既没有音频也没有视频的情况以及视频和字幕不同时存在的情况，要不会引起极大的混乱
 enum class ShowModeEnum: uint8_t {
-  Auto = 0b00000000, // 自动选择
   All = 0b00011100, // 显示所有
   OnlyPic = 0b00001000, // 仅仅显示图片
   AudioAndPic = 0b00011000, // 显示音频和图片,忽略字幕
@@ -30,6 +30,15 @@ enum class AudioVisualForm : uint8_t{
 
 class ShowModeUtil {
 public:
+  static bool isEnableAudio(ShowModeEnum showMode) {
+    return static_cast<uint8_t>(showMode) & 0b00010000;
+  }
+  static bool isEnableVideo(ShowModeEnum showMode) {
+    return static_cast<uint8_t>(showMode) & 0b00001000;
+  }
+  static bool isEnableSub(ShowModeEnum showMode) {
+    return static_cast<uint8_t>(showMode) & 0b00000100;
+  }
   // inline static ShowModeEnum getShowModeEnum(bool enableAud, bool enableVid, bool enableSub, AudioVisualForm audVisForm = AudioVisualForm::Waves);
 };
 

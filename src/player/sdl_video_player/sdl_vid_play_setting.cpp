@@ -38,8 +38,10 @@ AVDictionary* SDLVidPlayerSettings::filterOpts(
   // TODO: unfinished
   AVDictionary* codecOpts = nullptr;
   char valStr[5];
-  if (decoderThreadsNum) sprintf(valStr,"%d",decoderThreadsNum);
-  else                   strcpy(valStr,"auto");
+  if (decoderThreadsNum)
+    sprintf(valStr,"%d",decoderThreadsNum);
+  else
+    strcpy(valStr,"auto");
   av_dict_set(&codecOpts,
           "threads",
           valStr,

@@ -20,6 +20,7 @@ enum class ExceptionType : uint16_t { // 更改这里记得更改ExceptionTypeUt
   Unimplemented,
   UnsupportedHardware,
   /*----error----*/
+  SettingConflict,
   UnsupportedFormat,
   InvalidArgument,
   ResourceNotFound,
@@ -55,6 +56,7 @@ struct ExceptionTypeUtil {
     "Unimplemented",
     "Unsupported Hardware",
     /*----error----*/
+    "Setting Conflict",
     "Unsupported Format",
     "Invalid Argument",
     "Resource Not Found",

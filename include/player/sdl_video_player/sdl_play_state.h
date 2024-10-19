@@ -26,6 +26,7 @@ struct SDLPlayState {
   friend class SDLAudioDecodeRegin;
   friend class SDLVideoDecodeRegin;
 private:
+  static constexpr PlaySyncType preferredSyncType = PlaySyncType::AudioMaster;
   uint32_t serial;
   // 以下三个index是播放的流的index，-1表示没有播放
   int32_t lastVidStInd;
@@ -46,7 +47,6 @@ private:
 
   ClockGroup clkGroup;
 
-  PlaySyncType syncType;
   int audioClockSerial;
 
   bool eof; // 是否到达文件尾
@@ -59,6 +59,7 @@ private:
   uint32_t defaultPicWidth;
   uint32_t defaultPicHeight;
 
+  bool autoShowMode; // 只在correctPresentForm之前有作用,他的存在只为correctPresentForm服务
   MediaPresentForm presentForm;
 
   // private func
@@ -66,8 +67,14 @@ private:
 public:
   static constexpr uint8_t sdlMinVolume = 0;
   static constexpr uint8_t sdlMaxVolume = 100;
-  std::optional<ErrorDesc> correctPresentForm(ShowModeEnum originalShowMode,bool hasAud, bool hasVid, bool hasSub);
-  explicit SDLPlayState(double playSpeed,ShowModeEnum showMode);
+  std::optional<ErrorDesc> correctPresentForm(bool hasAud, bool hasVid, bool hasSub, std::optional<PlaySyncType> originalSyncType);
+  explicit SDLPlayState(
+    std::optional<ShowModeEnum> showModeOpt,
+    double playSpeed,
+    const uint32_t& audqSerialRef,
+    const uint32_t& vidqSerialRef,
+    const uint32_t& extqSerialRef
+  );
   static int getAborted(void* state);
 };
 

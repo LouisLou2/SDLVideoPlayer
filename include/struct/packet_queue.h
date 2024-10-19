@@ -33,6 +33,7 @@ public:
   [[nodiscard]] inline uint64_t getDuration() const;
   [[nodiscard]] inline uint32_t getSerial() const;
   [[nodiscard]] inline uint32_t getPktCount() const;
+  [[nodiscard]] inline const uint32_t& getSerialRef() const { return serial; }
   [[nodiscard]] bool isEmpty() const;
 
   /*

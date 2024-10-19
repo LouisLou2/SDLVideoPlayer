@@ -73,7 +73,7 @@ void SDLVideoPlayer::determineStream() {
                                                          0);
   }
   // 需要对presentForm进行修正
-  auto err = playState.correctPresentForm(settings.showMode, stIndex[AVMEDIA_TYPE_AUDIO] >= 0, stIndex[AVMEDIA_TYPE_VIDEO] >= 0, stIndex[AVMEDIA_TYPE_SUBTITLE] >= 0);
+  auto err = playState.correctPresentForm(stIndex[AVMEDIA_TYPE_AUDIO] >= 0, stIndex[AVMEDIA_TYPE_VIDEO] >= 0, stIndex[AVMEDIA_TYPE_SUBTITLE] >= 0, settings.syncType);
   if (err) {
     throw err.value();
   }

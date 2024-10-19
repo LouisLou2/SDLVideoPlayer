@@ -45,6 +45,7 @@ add_executable(tool_try
 #    include/entity/packet.h
 #    src/test/test_lib_queue.cpp
     ${ALL_SOURCE_FILES}
+        src/util/sync/clock.cpp
 )
 
 pkg_check_modules(AVCODEC REQUIRED IMPORTED_TARGET libavcodec)

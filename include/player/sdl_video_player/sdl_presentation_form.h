@@ -19,7 +19,7 @@ class MediaPresentForm {
 
 public:
   // MediaPresentForm构造时候仅仅代表用户意愿（所以auto就代表用户接受一切安排，all True）
-  explicit MediaPresentForm(ShowModeEnum showMode);
+  explicit MediaPresentForm(std::optional<ShowModeEnum> showModeOpt);
   //getter
   [[nodiscard]] bool isEnableAud() const { return enableAud; }
   [[nodiscard]] bool isEnableVid() const { return enableVid; }
