@@ -42,7 +42,7 @@ void Frame::shallowCopy(const Frame& fr) {
 }
 
 Frame& Frame::operator=(Frame&& rhs) noexcept {
-  // if (this == &rhs) return *this; // 不做检查
+  if (this == &rhs) return *this; // 不做检查
   frame = rhs.frame;
   serial = rhs.serial;
   pts = rhs.pts;

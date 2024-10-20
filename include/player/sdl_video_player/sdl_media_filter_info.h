@@ -46,7 +46,7 @@ class SDLMediaFilterInfo {
     AVFilterContext *filterIn,
     AVFilterContext *filterOut
   );
-  uint32_t getFilterOutSampleRate() const;
+  [[nodiscard]] uint32_t getFilterOutSampleRate() const;
   bool getFilterOutChLayout(AVChannelLayout* targetLayout) const;
 };
 
@@ -57,7 +57,10 @@ inline SDLMediaFilterInfo::SDLMediaFilterInfo():
   vidFilterIn(nullptr),
   vidFilterOut(nullptr){}
 
-inline void SDLMediaFilterInfo::setAudFilterParamsSrc(uint32_t freq, const AVChannelLayout* ch_layout, AVSampleFormat fmt) {
+inline void SDLMediaFilterInfo::setAudFilterParamsSrc(
+  uint32_t freq,
+  const AVChannelLayout* ch_layout,
+  AVSampleFormat fmt) {
     audFilterParamsSrc.setFreq(freq);
     audFilterParamsSrc.copySetChLayout(ch_layout);
     audFilterParamsSrc.setFmt(fmt);

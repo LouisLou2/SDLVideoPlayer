@@ -3,7 +3,7 @@
 //
 #include "util/sync/clock.h"
 
-inline double Clock::getPlayTime() const {
+double Clock::getPlayTime() const {
   if (serial!=latestSerialRef) {
     // TODO: 这里就是用来标记过时的，但是具体机制还不太清楚，之后再琢磨
     return std::numeric_limits<double>::quiet_NaN();

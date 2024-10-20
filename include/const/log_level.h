@@ -5,12 +5,14 @@
 #ifndef LOG_LEVEL_H
 #define LOG_LEVEL_H
 
+// 现在各个级别是没有什么顺序要求的
 enum class LogLevel: uint8_t {
-  Debug = 0,
-  Info = 1,
-  Warn = 2,
-  Error = 3,
-  Critical = 4,
+  Debug,
+  Trace,
+  Info,
+  Warn,
+  Error,
+  Critical,
 };
 
 #endif //LOG_LEVEL_H

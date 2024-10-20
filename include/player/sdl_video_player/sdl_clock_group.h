@@ -18,13 +18,28 @@ class ClockGroup {
   Clock vidClk;
   Clock extClk;
 public:
-  explicit ClockGroup(double speed, const uint32_t& audqSerialRef, const uint32_t& vidqSerialRef, const uint32_t& extqSerialRef);
+  explicit ClockGroup(
+    double speed,
+    const bool& paused,
+    const uint32_t& audqSerialRef,
+    const uint32_t& vidqSerialRef,
+    const uint32_t& extqSerialRef
+  );
   inline void setMasterClock(PlaySyncType syncType);
   [[nodiscard]] inline PlaySyncType getMasterClock() const;
   [[nodiscard]] double getMasterClkPlayTime() const;
 };
 
-inline ClockGroup::ClockGroup(double speed, const uint32_t& audqSerialRef, const uint32_t& vidqSerialRef, const uint32_t& extqSerialRef): audClk(speed, audqSerialRef), vidClk(speed,audqSerialRef), extClk(speed, audqSerialRef) {}
+inline ClockGroup::ClockGroup(
+  double speed,
+  const bool& paused,
+  const uint32_t& audqSerialRef,
+  const uint32_t& vidqSerialRef,
+  const uint32_t& extqSerialRef
+  ):
+  audClk(speed, paused, audqSerialRef),
+  vidClk(speed, paused, vidqSerialRef),
+  extClk(speed, paused, extqSerialRef) {}
 
 inline void ClockGroup::setMasterClock(PlaySyncType syncType) {
   this->syncType = syncType;

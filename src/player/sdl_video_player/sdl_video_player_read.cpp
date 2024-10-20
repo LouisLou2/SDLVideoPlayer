@@ -180,6 +180,7 @@ std::optional<ErrorDesc> SDLVideoPlayer::openStreamComponent(AVMediaType type, u
         return ErrorDesc::from(ExceptionType::FFmpegSetFailed, "Can't get channel layout");
       }
 
+
       break;
     case AVMEDIA_TYPE_VIDEO:
       break;

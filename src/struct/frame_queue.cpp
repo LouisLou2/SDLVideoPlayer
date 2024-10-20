@@ -14,19 +14,19 @@ void FrameQueue::reset(size_t capacity, bool keepLast) {
   this->keepLast = keepLast;
 }
 
-void FrameQueue::blockPush(Frame& fr) {
+void FrameQueue::blockPush(Frame&& fr) {
   std::unique_lock<std::mutex> lock(mtx);
   cv.wait(lock, [this] { return !isFull();});
-  buf[tail].releaseAndReset(fr);
+  buf[tail] = std::move(fr);
   tail = (tail + 1) % bufCap;
   cv.notify_all(); // 为什么通知？因为有可能有线程在等待pop
 }
 
-bool FrameQueue::tryPush(Frame& fr) {
+bool FrameQueue::tryPush(Frame&& fr) {
   if (isFull()) return false;
   std::unique_lock<std::mutex> lock(mtx);
   if (isFull()) return false; // 为什么要再次检查？因为可能在等待锁的时候，队列已经满了
-  buf[tail].releaseAndReset(fr);
+  buf[tail] = std::move(fr);
   tail = (tail + 1) % bufCap;
   cv.notify_all(); // 为什么通知？因为有可能有线程在等待pop
   return true;

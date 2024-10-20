@@ -14,20 +14,14 @@ extern "C"{
 #else
 #include <SDL2/SDL_audio.h>
 #endif
-#define SILENCE 0
 
-AudioParams SDLDisplayer::copySDLAudioSpecToAudioParams(const SDL_AudioSpec& spec, const AVChannelLayout* ch_layout) noexcept(false) {
-  AudioParams paras;
+
+AudioParamsDTO SDLDisplayer::copySDLAudioSpecToAudioParams(const SDL_AudioSpec& spec, const AVChannelLayout* ch_layout) noexcept(false) {
   auto ffFmt = SDLUtil::getCorAVFormat(spec.format);
   if (!ffFmt) {
     throw ErrorDesc::from(ExceptionType::FFmpegSetFailed, "Invalid audio format");
   }
-  paras.setFmt(ffFmt.value());
-  paras.setFreq(spec.freq);
-  paras.copySetChLayout(ch_layout);
-  uint32_t frameSize = av_samples_get_buffer_size(nullptr, spec.channels, 1, ffFmt.value(), 1);
-  paras.setSizes(frameSize, spec.freq);
-  return paras;
+  return {static_cast<uint32_t>(spec.freq), ch_layout, ffFmt.value()};
 }
 
 std::optional<ErrorDesc> SDLDisplayer::initDisplayer(const SDLVidPlayerSettings& settings, const MediaPresentForm& presentForm) {
@@ -92,18 +86,16 @@ std::optional<ErrorDesc> SDLDisplayer::initDisplayer(const SDLVidPlayerSettings&
   return std::nullopt;
 }
 
-std::pair<AudioParams,uint32_t> SDLDisplayer::configAudioDisplay(
+std::pair<AudioParamsDTO,uint32_t> SDLDisplayer::configAudioDisplay(
   SDL_AudioCallback callback,
   AVChannelLayout* wantedChLayOut,
   uint32_t wantedSR,
   SDL_AudioFormat mustBeFormat
-  )  noexcept(false)
-{
+) noexcept(false) {
   static_assert(srAlternatives.size() < std::numeric_limits<uint8_t>::max() && !srAlternatives.empty());
   static_assert(chNumAlternatives.size() < std::numeric_limits<uint8_t>::max() && !chNumAlternatives.empty());
   assert(wantedChLayOut);
   assert(wantedSR > 0);
-
   SDL_AudioSpec wantedSpec, obtainedSpec;
   bool needRelayout = false;
   uint8_t chosenChNum = wantedChLayOut->nb_channels;
@@ -125,7 +117,7 @@ std::pair<AudioParams,uint32_t> SDLDisplayer::configAudioDisplay(
   wantedSpec.channels = wantedChLayOut->nb_channels;//调整后的声道数
   wantedSpec.freq = wantedSR; // 采样率先这样设置，也不做检查是否不符合通用的采样率标准，如果能打开最好，打不开再调整
   wantedSpec.format = mustBeFormat;
-  wantedSpec.silence = SILENCE;
+  wantedSpec.silence = silentSample;
   wantedSpec.samples = FFUtil::getSamplesPerSec(wantedSpec.freq,wantedCallsPerSec,maxCallsPerSec,minSamplesContainedIn1Call);
   wantedSpec.callback = callback;
   audioDeviceId = SDL_OpenAudioDevice(
@@ -197,11 +189,10 @@ std::pair<AudioParams,uint32_t> SDLDisplayer::configAudioDisplay(
       throw ErrorDesc::from(ExceptionType::FFmpegSetFailed, "Invalid channel number set to SDL");
     }
   }
+  audioBufThreshold = obtainedSpec.size;
   // 记录下来,copySDLAudioSpecToAudioParams可能抛出异常，但是它如果抛出，也不是我们能处理得了
   try {
-    AudioParams paras = copySDLAudioSpecToAudioParams(obtainedSpec, wantedChLayOut);
-    audioBufThreshold = obtainedSpec.size;
-    return std::make_pair(paras, audioBufThreshold);
+    return std::make_pair(copySDLAudioSpecToAudioParams(obtainedSpec, wantedChLayOut), audioBufThreshold);
   }catch (ErrorDesc& e) {
     // 释放设备
     SDL_CloseAudioDevice(audioDeviceId);

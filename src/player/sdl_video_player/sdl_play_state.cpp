@@ -5,10 +5,10 @@
 #include "player/sdl_video_player/sdl_play_state.h"
 #ifdef __cplusplus
 extern "C" {
-#include <SDL_audio.h>
+#include <SDL2/SDL_audio.h>
 }
 #else
-#include <SDL_audio.h>
+#include <SDL2/SDL_audio.h>
 #endif
 
 // 此函数遵循AudioMaster优先的原则
@@ -59,11 +59,11 @@ std::optional<ErrorDesc> SDLPlayState::correctPresentForm(bool hasAud, bool hasV
 
 SDLPlayState::SDLPlayState(
 std::optional<ShowModeEnum> showModeOpt,
-double playSpeed,
-const uint32_t& audqSerialRef,
-const uint32_t& vidqSerialRef,
-const uint32_t& extqSerialRef
-):
+  double playSpeed,
+  const uint32_t& audqSerialRef,
+  const uint32_t& vidqSerialRef,
+  const uint32_t& extqSerialRef
+  ):
   serial(0),
   lastVidStInd(-1),
   lastAudStInd(-1),
@@ -80,7 +80,7 @@ const uint32_t& extqSerialRef
   mute(false),
   paused(false),
   volume(SDL_MIX_MAXVOLUME / 2),
-  clkGroup(playSpeed, audqSerialRef, vidqSerialRef, extqSerialRef),
+  clkGroup(playSpeed, this->paused, audqSerialRef, vidqSerialRef, extqSerialRef),
   audioClockSerial(-1),
   eof(false), // 默认没有到达文件尾
   abortReq(false), // 默认没有退出请求

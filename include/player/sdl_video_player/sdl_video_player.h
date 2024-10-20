@@ -5,6 +5,7 @@
 #ifndef VIDEOPLAYER_H
 #define VIDEOPLAYER_H
 
+#include "player_inner_config.h"
 #include "sdl_audio_decode_regin.h"
 #include "sdl_cache_collection.h"
 #include "sdl_displayer.h"
@@ -17,9 +18,6 @@
 #include "player/sdl_video_player/sdl_vid_player_setting.h"
 
 class SDLVideoPlayer final : public VideoPlayer {
-
-  static constexpr std::string programName = "SDLVideoPlayer";
-
   SDLVidPlayerSettings settings;
   VideoBasicInfo videoInfo;
   SDLPlayState playState;
@@ -38,6 +36,9 @@ class SDLVideoPlayer final : public VideoPlayer {
   // null_opt
   std::optional<ErrorDesc> openStreamComponent(AVMediaType type, uint16_t streamIndex);
 public:
+  static constexpr PlayerInnerConfig innerConfig = PlayerInnerConfig(10.0, 20,0.0126);
+  static constexpr std::string programName = "SDLVideoPlayer";
+
   explicit SDLVideoPlayer(
     const std::string& video_path,
     const std::optional<const SDLVidPlayerSettings*>& setting = std::nullopt

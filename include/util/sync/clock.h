@@ -17,20 +17,21 @@ extern "C" {
 #include<libavutil/time.h>
 #endif
 
-//
-struct Clock {
+class Clock {
   double pts;
   double ptsDrift;
   double lastUpdated;
   double speed;
-  bool paused;
+  const bool& paused; // 这个是一个引用，他应该引用自PlayerState中的paused,这样防止手动设置使得它们不一致
   uint32_t serial;
   const uint32_t& latestSerialRef; // 最新的序列号参照
-  // uint32_t* queueSerial;
 
-  // 这个构造函数是默认构造，它建立的对象目前是不能使用的
-  inline explicit Clock(double speed, const uint32_t& latestSerialRef);
 public:
+  inline explicit Clock(
+    double speed,
+    const bool& paused,
+    const uint32_t& latestSerialRef
+  );
   // 不允许拷贝构造和赋值
   Clock(const Clock&) = delete;
   Clock& operator=(const Clock&) = delete;
@@ -41,21 +42,27 @@ public:
    * 这里默认实现选择系统开机时间
    */
   static uint64_t getTimeSameBegin();
-  double getPlayTime() const;
+  [[nodiscard]] double getPlayTime() const;
 };
 
 // aware: 任何有nan参与的运算都会返回nan
-inline Clock::Clock(double speed, const uint32_t& latestSerialRef) :
+inline Clock::Clock(
+  double speed,
+  const bool& paused,
+  const uint32_t& latestSerialRef
+  ) :
   pts(std::numeric_limits<double>::quiet_NaN()),
   ptsDrift(pts), // pts和ptsDrift的初始值都是NaN
   lastUpdated(pts), //转换为秒为单位
   speed(speed),
-  paused(false),
+  paused(paused),
   serial(-1),
   latestSerialRef(latestSerialRef) {}
 
 inline uint64_t Clock::getTimeSameBegin() {
-  return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+  return std::chrono::duration_cast<std::chrono::microseconds>(
+    std::chrono::steady_clock::now().time_since_epoch()
+  ).count();
 }
 
 #endif //CLOCK_H

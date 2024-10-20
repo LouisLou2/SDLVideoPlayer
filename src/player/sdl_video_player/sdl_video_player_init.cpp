@@ -38,12 +38,18 @@ settings(setting.has_value() && setting.value() ? *(setting.value()) : SDLVidPla
  ),
  audDecodeRegin(
    cacheCollection.getAudFrameqRef(),
-   playState
+   playState,
+   innerConfig.numDiffSamplesToSync,
+   innerConfig.numDiffSamplesToSync,
+   innerConfig.weightOfOldestDiff
  ),
  vidDecodeRegin(
    cacheCollection.getVidFrameqRef(),
    cacheCollection.getSubFrameqRef(),
-   playState
+   playState,
+   innerConfig.numDiffSamplesToSync,
+   innerConfig.numDiffSamplesToSync,
+   innerConfig.weightOfOldestDiff
  ){
   videoInfo.originalUrl = video_path;
 }

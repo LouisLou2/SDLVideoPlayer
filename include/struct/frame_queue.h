@@ -47,8 +47,8 @@ public:
   /*
    * BEWARE: 向其中推送同一内存地址的Frame，会导致内存重复释放
    */
-  void blockPush(Frame& fr);
-  bool tryPush(Frame& fr);
+  void blockPush(Frame&& fr);
+  bool tryPush(Frame&& fr);
   Frame blockPop();
   std::optional<Frame> tryPop();
   Frame getLastFrame();
