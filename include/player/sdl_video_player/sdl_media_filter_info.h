@@ -23,7 +23,6 @@ class SDLMediaFilterInfo {
   friend class SDLVideoPlayer;
 
   AudioParams audFilterParamsSrc;
-
   AVFilterContext* audioFilterIn;
   AVFilterContext* audFilterOut;
   AVFilterContext* vidFilterIn;
@@ -69,7 +68,7 @@ inline uint32_t SDLMediaFilterInfo::getFilterOutSampleRate() const {
   return av_buffersink_get_sample_rate(audFilterOut);
 }
 inline bool SDLMediaFilterInfo::getFilterOutChLayout(AVChannelLayout* targetLayout) const {
-  return av_buffersink_get_ch_layout(audFilterOut, targetLayout) < 0;
+  return !av_buffersink_get_ch_layout(audFilterOut, targetLayout);
 }
 
 #endif //SDL_MEDIA_FILTER_INFO_H

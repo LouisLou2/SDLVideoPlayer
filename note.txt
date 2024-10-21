@@ -1,0 +1,5 @@
+如果你打开了这个项目继续写，请查看SDLAudioDecodeRegin::decodeFrame函数
+这个函数可能返回值使用std::optional<ErrorDesc>更好，因为现在返回的值也是对象中的字段，挺冗余
+
+另外此函数中有很多TODO，与ffplay有出入，需要仔细理解ffplay的逻辑,找到方案
+并且这个函数很大，也许可以拆分成多个函数，这样更容易理解

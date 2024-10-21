@@ -46,6 +46,7 @@ add_executable(tool_try
 #    src/test/test_lib_queue.cpp
     ${ALL_SOURCE_FILES}
         include/entity/audio_simple_format.h
+        include/util/mem/mem_alloc.h
 )
 
 pkg_check_modules(AVCODEC REQUIRED IMPORTED_TARGET libavcodec)

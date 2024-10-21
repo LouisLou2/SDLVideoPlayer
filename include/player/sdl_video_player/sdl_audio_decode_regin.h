@@ -24,6 +24,7 @@
 
 class SDLAudioDecodeRegin {
   static constexpr uint8_t sampleCorrectionMaxPrecent = 10;
+  static constexpr uint16_t sampleNumMargin = 256; // 防止计算精度问题出现与理论值的波动，所以加一个margin以防缓冲区不够
   /*----------用于同步的---------------*/
   // 太大的时间差，不进行同步,怀疑是因为文件pts有问题
   const double tooBigDiffNoSync;
@@ -39,6 +40,7 @@ class SDLAudioDecodeRegin {
   AudioSimpleFormat audRecordedParams; // 已经创建好应对方案的音频格式，一开始就是和audTgtParams一样的
   // 目标参数, 足以他只能被设置一次
   AudioParams audTgtParams;
+  uint8_t bytePerSampleForTgt;
   /*--------队列----------------------*/
   FrameQueue& aFrameq;
   /*--------硬件相关与播放状态-----------*/
@@ -50,6 +52,11 @@ class SDLAudioDecodeRegin {
   const SDLPlayState& playState;
   /*-------------重采样-----------------*/
   std::unique_ptr<SwrContext, SwrContextDeleter> swrCtx;
+  /*-------------数据区-----------------*/
+  Frame latestF; // 当前的数据帧TODO：还没有很好地管理它
+  uint8_t* _processedData = nullptr;  //不可传递，内部使用,表示音频处理后的数据
+  uint32_t _processedDataSize; //不可传递，内部使用,表示音频处理后的数据的大小
+  std::span<uint8_t> data; // 只是个视窗，指向真正的数据
 public:
   // cons
   SDLAudioDecodeRegin(
@@ -92,6 +99,8 @@ public:
    */
   [[nodiscard]] inline bool needPrepareSwrWithFmt(const Frame& fa, uint32_t idealNbSamples) const;
   inline void updateAudRecord(const Frame& fa);
+
+  ~SDLAudioDecodeRegin() = default; // latestF的析构函数会自动调用
 };
 
 
@@ -114,12 +123,13 @@ inline void SDLAudioDecodeRegin::setFromDisplayDecision(
   ) {
   audTgtParams = audioParamsDTO; // 只能被设置一次，之后一点点都不能改变
   audRecordedParams.setShallowCopy(audTgtParams); // 这里因为audTgtParams被Set之后就不会再变了，所以这里可以直接浅拷贝
+  bytePerSampleForTgt = av_get_bytes_per_sample(audTgtParams.getFmt());
   this->hardwareAudBufSize = hardwareAudBufSize;
   diffThreshToAdjust = static_cast<double>(hardwareAudBufSize) / audTgtParams.getBytePerSec();
 }
 
 inline bool SDLAudioDecodeRegin::needPrepareSwrWithFmt(const Frame& fa, uint32_t idealNbSamples) const {
-  return audRecordedParams.equalTo(
+  return !audRecordedParams.equalTo(
     fa.frame->sample_rate,
     &fa.frame->ch_layout,
     static_cast<AVSampleFormat>(fa.frame->format) // 这里需要将int转换为AVSampleFormat，Frame一定要是音频帧，这个保证需要上游（将Frame放进queue的地方）保证
@@ -127,7 +137,7 @@ inline bool SDLAudioDecodeRegin::needPrepareSwrWithFmt(const Frame& fa, uint32_t
 }
 
 inline void SDLAudioDecodeRegin::updateAudRecord(const Frame& fa) {
-  audRecordedParams.setDeepCopy(fa.frame->sample_rate, fa.frame->ch_layout, static_cast<AVSampleFormat>(fa.frame->format));
+  audRecordedParams.setDeepCopy(fa.frame->sample_rate, &fa.frame->ch_layout, static_cast<AVSampleFormat>(fa.frame->format));
 }
 
 #endif //SDL_AUDIO_DECODE_REGIN_H

@@ -43,7 +43,9 @@ struct Frame {
   void release();
   // release and reset
   void releaseAndReset(const Frame& fr);
-  ~Frame() = default;
+  ~Frame() {
+    if (frame) av_frame_free(&frame);
+  }
 };
 
 
